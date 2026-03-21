@@ -42,3 +42,21 @@ In principle, all we have to do is:
 - if it's an long array, similarly, the size is a signed integer of 4 bytes, then just the data.
 
 But honestly, since we're kinda short of time, we'll use an external library to parse it.
+
+We'll use `Querz/NBT` with docs from [here](https://github.com/Querz/NBT)
+
+So from the `.cw` specification, there are a lot of fields, but one of the most important one for us is the `BlockArray` compound tag.
+
+
+```
+00000000  00 07 6b 31 6d 63 68 31  20 20 20 20 20 20 20 20  |..k1mch1        |
+00000010  20 20 20 20 20 20 20 20  20 20 20 20 20 20 20 20  |                |
+*
+00000040  20 20 28 6e 6f 6e 65 29  20 20 20 20 20 20 20 20  |  (none)        |
+00000050  20 20 20 20 20 20 20 20  20 20 20 20 20 20 20 20  |                |
+*
+00000080  20 20 42                                          |  B|
+00000083
+```
+
+So according to [this](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Classic_Protocol#Server_.E2.86.92_Client_packets) docs.
