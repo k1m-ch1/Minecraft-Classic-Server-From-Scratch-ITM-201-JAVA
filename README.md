@@ -59,4 +59,15 @@ So from the `.cw` specification, there are a lot of fields, but one of the most 
 00000083
 ```
 
-So according to [this](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Classic_Protocol#Server_.E2.86.92_Client_packets) docs.
+So according to [this](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Classic_Protocol#Server_.E2.86.92_Client_packets) docs, a packet is of the following format:
+
+- 1 byte of packet ID
+- 
+
+I don't know why this was so hard to find but [this](https://omniarchive.uk/archive/java/server/classic/) is the actual minecraft classic server (that still works btw).
+
+to run it, do: 
+
+```
+java -cp ./c1.10.jar com.mojang.minecraft.server.MinecraftServer
+```
