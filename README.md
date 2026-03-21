@@ -71,3 +71,7 @@ to run it, do:
 ```
 java -cp ./c1.10.jar com.mojang.minecraft.server.MinecraftServer
 ```
+
+Minecraft classic block type id is linked [here](https://minecraft.fandom.com/wiki/Java_Edition_data_values/Classic)
+
+
