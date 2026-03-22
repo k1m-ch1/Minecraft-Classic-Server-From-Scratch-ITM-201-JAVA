@@ -4,11 +4,81 @@
 package com.github.k1mch1.mc;
 
 import java.io.*;
+import java.net.*;
+import java.util.*;
+
+import net.querz.nbt.tag.*;
+import net.querz.nbt.io.*;
+
+class Client extends Thread {
+
+  Socket clientSocket;
+  DataInputStream in;
+  DataOutputStream out;
+
+  public Client(Socket clientSocket, ByteArrayTag blockArray, CompoundTag spawn) throws IOException {
+    this.clientSocket = clientSocket;
+    this.in = new DataInputStream(clientSocket.getInputStream());
+    this.out = new DataOutputStream(clientSocket.getOutputStream());
+  }
+
+  public void run() {
+    try {
+      byte packetID;
+      byte protocolVersion;
+      byte username[] = new byte[64];
+      byte verificationKey[] = new byte[64];
+
+      packetID = in.readByte();
+      // let's just assume that packetID is 00
+      System.out.println("Packet ID:" + packetID);
+
+      protocolVersion = in.readByte();
+      System.out.println("Protocol Version:" + protocolVersion);
+
+      // username
+      in.readFully(username);
+      System.out.println(new String(username).trim());
+
+      // verificationKey
+      in.readFully(verificationKey);
+      System.out.println(new String(username).trim());
+
+      // read unused byte
+      in.readByte();
+
+    } catch (IOException e) {
+      System.out.println("Idk, something happened");
+    }
+  }
+}
 
 public class Main {
-  public static void main(String[] args) {
+
+  public static void main(String[] args) throws IOException {
     System.out.println("Starting a new server...");
-    File worldFile = new File("worlds/world.cw");
-    System.out.println(worldFile.getAbsolutePath());
+
+    NamedTag namedTag = NBTUtil.read("worlds/world.cw");
+    CompoundTag world = (CompoundTag) namedTag.getTag();
+    /*
+     * System.out.println(world.get("Spawn"));
+     * 
+     * System.out.println(((ByteArrayTag) world.get("BlockArray")).length());
+     * System.out.println(world.get("X"));
+     * System.out.println(world.get("Y"));
+     * System.out.println(world.get("Z"));
+     */
+
+    ServerSocket serverSocket = new ServerSocket(25565);
+
+    Socket clientSocket = serverSocket.accept();
+
+    // we want this to be an array list or something
+    Thread clientThread = new Client(clientSocket,
+        (ByteArrayTag) world.get("BlockArray"),
+        (CompoundTag) world.get("Spawn"));
+
+    clientThread.start();
+    serverSocket.close();
   }
 }

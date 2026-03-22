@@ -60,9 +60,9 @@ if __name__ == "__main__":
         print("player name: ", bytes.fromhex(read_bytes(file, 64)))
 
         # we get some coords (as a FShort) which is a fixed point short
-        print("x: ", read_bytes(file, 2))
-        print("y: ", read_bytes(file, 2))
-        print("z: ", read_bytes(file, 2))
+        print("x: ", int(read_bytes(file, 2), 16)/(2**5))
+        print("y: ", int(read_bytes(file, 2), 16)/(2**5))
+        print("z: ", int(read_bytes(file, 2), 16)/(2**5))
 
         # we get yaw and pitch
         print("yaw: ", int(read_bytes(file, 1), 16))

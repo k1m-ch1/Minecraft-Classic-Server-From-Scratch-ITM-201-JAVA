@@ -40,7 +40,7 @@ java {
 
 application {
     // Define the main class for the application.
-    mainClass = 'com.github.k1mch1.testing.UsingNBT'
+    mainClass = 'com.github.k1mch1.mc.Main'
 }
 
 tasks.named("run"){

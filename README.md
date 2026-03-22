@@ -1,3 +1,69 @@
+# About
+
+# Setting up
+
+So for our client, we'll use [ClassiCube](https://www.classicube.net/).
+
+We'll be writing a very simple server to support ClassiCube, using the [original server](https://omniarchive.uk/archive/java/server/classic/) as our reference.
+
+Why is `gradle` making managing packages harder? Anyway, to build:
+
+
+```
+./gradlew build
+```
+
+And to run:
+
+```
+./gradlew run
+```
+
+# TODO
+
+## Parsing `.cw` file
+
+- [] parse `.cw` file (remember, i only really need the block array)
+- [] use that `.cw` file to get the block array which is at the `"BlockArray` tag to send it to the client as per request
+- [] read the `"Spawn"` tag, get the location and spawn players there
+- [] read the `.cw` file
+- [] write the bare minimum `.cw` file to save it so that it can be loaded in classicube or whatever (optional, since we can just save it using Classicube)
+
+## Protocol stuff
+
+### From the client's side
+
+- [] receive connection to client
+- [] handle client's packet id which includes:
+  - [] player identification `0x00` (ignore all the security stuff)
+  - [] `0x05` set block (make sure to reply back with packet `0x06` to acknowledge)
+  - [] `0x08` position updates
+  - [] `0x0d` messages
+
+### From the server's side
+
+- [] talk to client at the right times
+  - [] send a `0x00` packet 
+  - [] send a `0x02` packet to ask the client to expect a bunch of data in coming
+  - [] send a bunch of `0x03` packets
+  - [] send a `0x04` at the end to summarize
+  - [] send packet `0x07` to spawn the player
+  - [] send 2 pings for some reason (let's see if we can reproduce it)
+  - [] send a message using packet `0x0d` to everyone saying that a player has joined or some custom message.
+  - [] ping periodically
+  - [] receive `0x05` packages from the client, send `0x06` to acknowledge
+
+### Multiplayer
+
+- [] use threading to handle multiple sockets
+- [] arbitrarily, but not randomly assign player ID to each player
+- [] broadcast messages to everyone using `0x0d`
+- [] update each user's world view when stuff changes (broadcast `0x06` packages to everyone)
+- [] handle player disconnect by broadcasting a `0x0c` despawn packet
+
+There are other protocols and features we can implement later if we do have time.
+
+
 # References
 
 - [Our bible (minecraft wiki)](https://minecraft.wiki/w/Minecraft_Wiki:Protocol_documentation#:~:text=Minecraft%3A%20Java%20Edition%20Classic)
@@ -7,6 +73,12 @@
 - fCraft for minecraft world conversion
 
 - [block types](https://minecraft.wiki/w/Java_Edition_Classic_data_values)
+
+- [multithreading in java geeks for geeks](https://www.geeksforgeeks.org/java/multithreading-in-java/)
+
+- [java sockets](https://www.geeksforgeeks.org/java/socket-programming-in-java/)
+
+- NBT parser [here](https://github.com/Querz/NBT)
 
 # What we'll use
 
