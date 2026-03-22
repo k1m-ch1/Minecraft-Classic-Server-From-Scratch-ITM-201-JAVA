@@ -62,7 +62,7 @@ So from the `.cw` specification, there are a lot of fields, but one of the most 
 So according to [this](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Classic_Protocol#Server_.E2.86.92_Client_packets) docs, a packet is of the following format:
 
 - 1 byte of packet ID
-- 
+- some stuff
 
 I don't know why this was so hard to find but [this](https://omniarchive.uk/archive/java/server/classic/) is the actual minecraft classic server (that still works btw).
 
@@ -74,4 +74,84 @@ java -cp ./c1.10.jar com.mojang.minecraft.server.MinecraftServer
 
 Minecraft classic block type id is linked [here](https://minecraft.fandom.com/wiki/Java_Edition_data_values/Classic)
 
+## the 0x03 packet id from server to client
 
+So for this packet id is special since it contains all of the data for the world (no chunk loading logic yet).
+
+So we get the following:
+
+- 1 byte for packet ID
+- 2 bytes for chunk length as a short
+- 1024 bytes for chunk data
+- 1 byte as a "percent complete"
+
+Now after the `0x02` packet, we'll actually get a series of `0x03` packets.
+
+We stitch all the chunk data from the `0x03` packets to get one big gzipped block array.
+
+You can quickly verify that it's gzipped (meant to be gzipped) by checking the first 2 bytes to see that it's `0x1f8b`
+
+## Block array
+
+Ok, if you `gunzip` the gzipped block array, you'll get something that's almost a block array.
+
+Basically, you need to strip the first 4 bytes which represents an integer of how big the block array is.
+
+```
+$ stat -c %s ./block_data
+4194308
+```
+
+```
+>>> 256 * 64 * 256
+4194304
+```
+
+So if we strip the first 4 bytes of the concatenated block data, you'll get the same result.
+
+In fact, the first 4 bytes interpreted as an `int` also gives `4194304`.
+
+The size can be verified by doing `x*y*z` of the `0x04` packet and seeing that they're indeed the same.
+
+So for a flat block array, we get the block type by doing:
+
+```
+index = x + (z * width) + (y * width * depth)
+```
+
+where y is actually the altitude (z axis in normal math).
+
+so it's XZY and it's right handed
+
+```
+        Y (height)
+        ↑
+        |
+        |
+        +------→ X (width)
+       /
+      /
+     Z (depth)
+```
+
+So bascially, if we have `(x,y,z)`, we're writing the blocks in this order:
+
+```
+(0, 0, 0), (1, 0, 0), (2, 0, 0),... ,(width - 1, 0, 0),
+(0, 0, 1), (1, 0, 1), (2, 0, 1), ... ,(width - 1, 0, 1),
+(0, 0, 2), (1, 0, 2), (2, 0, 2), ... ,(width - 1, 0, 2),
+...
+(0, 0, depth - 1), (1, 0, depth - 1), (2, 0, depth - 1), ... ,(width - 1, 0, depth - 1),
+(0, 1, 0), (0, 1, 0), (0, 1, 0), ... ,(0, 1, 0),
+...
+```
+
+It's like using a different base for each digit.
+
+It's like:
+
+```
+index = x + width*z + width*depth*y
+```
+
+So we just do that until we reach the end of the byte array. Each byte of the array represents a block type, according to this table [linked here](https://minecraft.fandom.com/wiki/Java_Edition_data_values/Classic).
