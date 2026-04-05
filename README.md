@@ -6,17 +6,15 @@ So for our client, we'll use [ClassiCube](https://www.classicube.net/).
 
 We'll be writing a very simple server to support ClassiCube, using the [original server](https://omniarchive.uk/archive/java/server/classic/) as our reference.
 
-Why is `gradle` making managing packages harder? Anyway, to build:
-
 
 ```
-./gradlew build
+./build
 ```
 
 And to run:
 
 ```
-./gradlew run
+./run
 ```
 
 # TODO
