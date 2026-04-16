@@ -28,27 +28,15 @@ public class Main {
      */
     
     ServerSocket serverSocket = new ServerSocket(25565);
-    Socket clientSocket = serverSocket.accept();
-
     BlockingQueue<Packet> clientToServer = new LinkedBlockingQueue<>();
+    CopyOnWriteArrayList<Client> clientList = new CopyOnWriteArrayList<>();
+    Accept acceptThread = new Accept(serverSocket, clientList);
+    acceptThread.start();
 
-    // we want this to be an array list or something
-    Client clientThread = new Client(clientSocket,
-        (ByteArrayTag) world.get("BlockArray"),
-        (CompoundTag) world.get("Spawn"),
-        (ShortTag) world.get("X"),
-        (ShortTag) world.get("Y"),
-        (ShortTag) world.get("Z")
-    );
-
-    clientThread.start();
-    try {
-      while (clientThread.isAlive()){
-        clientThread.serverToClient.put(new Message((byte) 0xff, String.format("%-64s", "hello").getBytes(StandardCharsets.US_ASCII)));
-      }  
-    } catch (Exception e) {
-      System.out.println("sth went wrong");
+    while (true){
+      System.out.println(clientList.size());
     }
-    serverSocket.close();
+
+    //serverSocket.close();
   }
 }

@@ -132,13 +132,6 @@ class Client extends Thread {
       out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
       while (true){
         out.writeByte(0x01);
-        Packet p = serverToClient.poll();
-        if (p != null){
-          System.out.println("Got a packet: " + p.getClass());
-          if (p instanceof Message){
-            System.out.println("It says: " + new String(((Message) p).text).trim());
-          }
-       };
       }
     } catch (IOException e) {
       System.out.println("Idk, something happened");
