@@ -3,6 +3,7 @@ package mcserver;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 
@@ -82,9 +83,13 @@ class Client extends Thread {
       //System.out.println(this.blockArray.getValue());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       GZIPOutputStream gzip = new GZIPOutputStream(baos);
+      gzip.write(ByteBuffer
+        .allocate(4)
+        .putInt(this.blockArray.length())
+        .array()
+      );
       gzip.write(this.blockArray.getValue());
       gzip.close();
-
       byte[] compressedByteArray = baos.toByteArray();
       for (int i = 0; i < compressedByteArray.length; i += 1024){
         // level data chunk
@@ -98,30 +103,33 @@ class Client extends Thread {
         out.writeByte(percentageCompleted); // percent complete;
         System.out.println("Percentage completed: " + percentageCompleted);
       }
-      
       // level finalize
       out.writeByte(0x04);
       out.writeShort(this.x.asShort());
       out.writeShort(this.y.asShort());
       out.writeShort(this.z.asShort());
-    
+
+      /* 
+      out.writeShort(((ShortTag) this.spawn.get("X")).asShort() * 32);
+      out.writeShort(((ShortTag) this.spawn.get("Y")).asShort() * 32);
+      out.writeShort(((ShortTag) this.spawn.get("Z")).asShort() * 32);
+      out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
+      out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
+      out.flush();
+      */
       // spawn player
       out.writeByte(0x07); // packet ID
-      out.writeByte(0x11); // player ID
-      /* 
+      out.writeByte(0xff); // player ID
       out.write(username);
-      out.writeShort(this.spawn("X").getValue());
-      out.writeShort(this.spawn("Y").getValue());
-      out.write(this.spawn("Z").getValue());
-      out.write(this.spawn("Z").getValue());
-      out.write(this.spawn("Z").getValue());
-      */
-      out.writeShort(0x0000); // x
-      out.writeShort(0x0000); // y
-      out.writeShort(0x0000); // z
-      out.write(0x00); // heading
-      out.write(0x00); // pitch
-
+      System.out.println("Spawn: " + this.spawn);
+      out.writeShort((short)(66*32));
+      out.writeShort((short)(33*32));
+      out.writeShort((short)(184*32));
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      while (true){
+        out.writeByte(0x01);
+      }
     } catch (IOException e) {
       System.out.println("Idk, something happened");
     }
