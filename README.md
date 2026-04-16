@@ -17,21 +17,35 @@ And to run:
 ./run
 ```
 
+# Architecture
+
+For each client:
+
+- So each client has a thread
+- each client thread has a thread that handles read, that is, read from tcp socket, then parses it a bit and putting it into the world's queue
+- each client thread also has a writer thread, that uses the `.take` method on its own queue if the world thread talks to it (blocking). But then it also needs to needs to occasionally send a keep alive packet (so we need to delegate the heartbeat task to the main thread)
+
+For the server:
+
+- there's a thread that handles connections and places the client inside a global list of client
+- there's a thread that uses the `.take` method on the world's queue and broadcast it to all clients (and also do some stuff behind the scene)
+- there's a heartbeat thread that just pings every client
+
 # TODO
 
-## Parsing `.cw` file
+~~## Parsing `.cw` file~~
 
-- [] parse `.cw` file (remember, i only really need the block array)
-- [] use that `.cw` file to get the block array which is at the `"BlockArray` tag to send it to the client as per request
-- [] read the `"Spawn"` tag, get the location and spawn players there
-- [] read the `.cw` file
-- [] write the bare minimum `.cw` file to save it so that it can be loaded in classicube or whatever (optional, since we can just save it using Classicube)
+~~- [] parse `.cw` file (remember, i only really need the block array)~~
+~~- [] use that `.cw` file to get the block array which is at the `"BlockArray` tag to send it to the client as per request~~
+~~- [] read the `"Spawn"` tag, get the location and spawn players there~~
+~~- [] read the `.cw` file~~
+~~- [] write the bare minimum `.cw` file to save it so that it can be loaded in classicube or whatever (optional, since we can just save it using Classicube)~~
 
 ## Protocol stuff
 
 ### From the client's side
 
-- [] receive connection to client
+- [x] receive connection to client
 - [] handle client's packet id which includes:
   - [] player identification `0x00` (ignore all the security stuff)
   - [] `0x05` set block (make sure to reply back with packet `0x06` to acknowledge)

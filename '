@@ -135,10 +135,7 @@ class Client extends Thread {
         Packet p = serverToClient.poll();
         if (p != null){
           System.out.println("Got a packet: " + p.getClass());
-          if (p instanceof Message){
-            System.out.println("It says: " + new String(((Message) p).text).trim());
-          }
-       };
+        };
       }
     } catch (IOException e) {
       System.out.println("Idk, something happened");
