@@ -18,15 +18,6 @@ public class Main {
 
     NamedTag namedTag = NBTUtil.read("worlds/world.cw");
     CompoundTag world = (CompoundTag) namedTag.getTag();
-    /*
-     * System.out.println(world.get("Spawn"));
-     * 
-     * System.out.println(((ByteArrayTag) world.get("BlockArray")).length());
-     * System.out.println(world.get("X"));
-     * System.out.println(world.get("Y"));
-     * System.out.println(world.get("Z"));
-     */
-    
     ServerSocket serverSocket = new ServerSocket(25565);
     BlockingQueue<Packet> clientToServer = new LinkedBlockingQueue<>();
     CopyOnWriteArrayList<Client> clientList = new CopyOnWriteArrayList<>();
@@ -34,9 +25,20 @@ public class Main {
     acceptThread.start();
 
     while (true){
-      System.out.println(clientList.size());
-    }
+      clientList.removeIf(client -> client.isDisconnected);
+      // handle pinging (fast)
+      for(Client client: clientList){
+        try{
+          client.serverToClient.put(new Ping());
+        }
+        catch (InterruptedException e){
+          System.out.println("Something went wrong..., marking the client as disconnected");
+          client.isDisconnected = true;
+        }
+      }
 
-    //serverSocket.close();
+      // TODO: handle client queue (slow)
+      System.out.println("Clients: " + clientList.size());
+    }
   }
 }

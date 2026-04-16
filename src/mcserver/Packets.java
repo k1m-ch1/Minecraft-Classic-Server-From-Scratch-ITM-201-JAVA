@@ -2,6 +2,9 @@ package mcserver;
 
 interface Packet {}
 
+class Ping implements Packet{
+}
+
 class SetBlock implements Packet{
   short x, y, z;
   byte block;

@@ -13,7 +13,9 @@ import java.util.concurrent.*;
 import net.querz.nbt.tag.*;
 import net.querz.nbt.io.*;
 
+
 class Client extends Thread {
+  boolean isDisconnected = false;
   BlockingQueue<Packet> serverToClient = new LinkedBlockingQueue<>();
   Socket clientSocket;
   DataInputStream in;
@@ -112,14 +114,6 @@ class Client extends Thread {
       out.writeShort(this.y.asShort());
       out.writeShort(this.z.asShort());
 
-      /* 
-      out.writeShort(((ShortTag) this.spawn.get("Y")).asShort() * 32);
-      out.writeShort(((ShortTag) this.spawn.get("Z")).asShort() * 32);
-      out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
-      out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
-      out.flush();
-      */
-      
       // spawn player
       out.writeByte(0x07); // packet ID
       out.writeByte(0xff); // player ID
@@ -130,11 +124,23 @@ class Client extends Thread {
       out.writeShort(((ShortTag) this.spawn.get("Z")).asShort() * 32);
       out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
       out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
+
       while (true){
-        out.writeByte(0x01);
+        Packet p = serverToClient.take();
+        if (p instanceof Ping){
+          out.writeByte(0x01);
+        }
       }
-    } catch (IOException e) {
-      System.out.println("Idk, something happened");
+    } 
+    catch (IOException e) {
+      System.out.println("Something happened, client disconnected");
+      this.isDisconnected = true;
+      e.printStackTrace();
+    }
+    catch (InterruptedException e){
+      System.out.println("InterruptedException, client probably disconnected");
+      this.isDisconnected = true;
+      e.printStackTrace();
     }
   }
 }

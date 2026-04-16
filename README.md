@@ -55,19 +55,20 @@ For the server:
 ### From the server's side
 
 - [] talk to client at the right times
-  - [] send a `0x00` packet 
-  - [] send a `0x02` packet to ask the client to expect a bunch of data in coming
-  - [] send a bunch of `0x03` packets
-  - [] send a `0x04` at the end to summarize
-  - [] send packet `0x07` to spawn the player
-  - [] send 2 pings for some reason (let's see if we can reproduce it)
+  - [x] send a `0x00` packet 
+  - [x] send a `0x02` packet to ask the client to expect a bunch of data in coming
+  - [x] send a bunch of `0x03` packets
+  - [x] send a `0x04` at the end to summarize
+  - [x] send packet `0x07` to spawn the player
+  ~~- [] send 2 pings for some reason (let's see if we can reproduce it)~~
   - [] send a message using packet `0x0d` to everyone saying that a player has joined or some custom message.
-  - [] ping periodically
+  - [x] ping periodically
   - [] receive `0x05` packages from the client, send `0x06` to acknowledge
 
 ### Multiplayer
 
 - [] use threading to handle multiple sockets
+- [] need everyone to share the same block array
 - [] arbitrarily, but not randomly assign player ID to each player
 - [] broadcast messages to everyone using `0x0d`
 - [] update each user's world view when stuff changes (broadcast `0x06` packages to everyone)

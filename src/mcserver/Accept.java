@@ -39,6 +39,7 @@ class Accept extends Thread{
       }
     } catch (IOException e) {
       System.out.println("Idk, something happened");
+      e.printStackTrace();
     }
   }
 }
