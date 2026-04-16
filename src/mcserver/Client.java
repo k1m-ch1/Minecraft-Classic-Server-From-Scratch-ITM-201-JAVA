@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPOutputStream;
 
 import net.querz.nbt.tag.*;
 import net.querz.nbt.io.*;
@@ -15,11 +16,24 @@ class Client extends Thread {
   DataOutputStream out;
   ByteArrayTag blockArray;
   CompoundTag spawn;
+  ShortTag x;
+  ShortTag y;
+  ShortTag z;
 
-  public Client(Socket clientSocket, ByteArrayTag blockArray, CompoundTag spawn) throws IOException {
+  public Client(
+    Socket clientSocket, 
+    ByteArrayTag blockArray, 
+    CompoundTag spawn,
+    ShortTag x,
+    ShortTag y,
+    ShortTag z
+  ) throws IOException {
     this.clientSocket = clientSocket;
     this.blockArray = blockArray;
     this.spawn = spawn;
+    this.x = x;
+    this.y = y;
+    this.z = z;
     this.in = new DataInputStream(clientSocket.getInputStream());
     this.out = new DataOutputStream(clientSocket.getOutputStream());
   }
@@ -63,12 +77,50 @@ class Client extends Thread {
       
       // level initalize
       out.writeByte(0x02);
-
-      // level data chunk
-      out.writeByte(0x03);
-
+      
       System.out.println("Block array length: " + this.blockArray.length());
-      System.out.println(this.blockArray.getValue());
+      //System.out.println(this.blockArray.getValue());
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      GZIPOutputStream gzip = new GZIPOutputStream(baos);
+      gzip.write(this.blockArray.getValue());
+      gzip.close();
+
+      byte[] compressedByteArray = baos.toByteArray();
+      for (int i = 0; i < compressedByteArray.length; i += 1024){
+        // level data chunk
+        out.writeByte(0x03);
+        byte[] chunk = new byte[1024];
+        short length = (short) Math.min(1024, compressedByteArray.length - i);
+        out.writeShort(length); // sending one byte at a time
+        System.arraycopy(compressedByteArray, i, chunk, 0, length);
+        out.write(chunk); // sending the chunk
+        int percentageCompleted = ((i + length)*100)/compressedByteArray.length;
+        out.writeByte(percentageCompleted); // percent complete;
+        System.out.println("Percentage completed: " + percentageCompleted);
+      }
+      
+      // level finalize
+      out.writeByte(0x04);
+      out.writeShort(this.x.asShort());
+      out.writeShort(this.y.asShort());
+      out.writeShort(this.z.asShort());
+    
+      // spawn player
+      out.writeByte(0x07); // packet ID
+      out.writeByte(0x11); // player ID
+      /* 
+      out.write(username);
+      out.writeShort(this.spawn("X").getValue());
+      out.writeShort(this.spawn("Y").getValue());
+      out.write(this.spawn("Z").getValue());
+      out.write(this.spawn("Z").getValue());
+      out.write(this.spawn("Z").getValue());
+      */
+      out.writeShort(0x0000); // x
+      out.writeShort(0x0000); // y
+      out.writeShort(0x0000); // z
+      out.write(0x00); // heading
+      out.write(0x00); // pitch
 
     } catch (IOException e) {
       System.out.println("Idk, something happened");
