@@ -77,13 +77,85 @@ class ClientWriter extends Thread{
     }
     catch (IOException | InterruptedException e){
       System.out.println("Exception in ClientWriter thread, client probably disconnected");
+      this.client.isDisconnected = true;
       e.printStackTrace();
     }
   }
 }
 
 class ClientReader extends Thread{
-  // the goal of this thread is to read stuff from the client and ensure that it's in the right format to send to the serverToClient thread
+  // the goal of this thread is to read stuff from the client and ensure that it's in the right format to send to the clientToServer thread
+  Client client;
+  ClientReader(
+    Client client
+  ){
+    this.client = client;
+  }
+
+  public void run(){
+    try{
+      while (true){
+        byte packetID = this.client.in.readByte();
+        if (packetID == 0x08){
+          // 0x08 is the position and orientation packet
+          byte playerID = this.client.in.readByte();
+          short x = this.client.in.readShort();
+          short y = this.client.in.readShort();
+          short z = this.client.in.readShort();
+          byte yaw = this.client.in.readByte();
+          byte pitch = this.client.in.readByte();
+
+          this.client.x = new AtomicInteger(x);
+          this.client.y = new AtomicInteger(y);
+          this.client.z = new AtomicInteger(z);
+          this.client.yaw = new AtomicInteger(yaw);
+          this.client.pitch = new AtomicInteger(pitch);
+
+          this.client.clientToServer.put(new PositionAndOrientation(
+            this.client.playerID,
+            x,
+            y,
+            z,
+            yaw,
+            pitch
+          ));
+        }
+        else if(packetID == 0x0d) {
+          // 0x0d is the message packet
+          byte message[] = new byte[64];
+          byte messageColor = this.client.in.readByte();
+          this.client.in.readFully(message);
+          this.client.clientToServer.put(new Message(
+            this.client.playerID,
+            message
+          ));
+        }
+        else if(packetID == 0x05){
+          short x = this.client.in.readShort();
+          short y = this.client.in.readShort();
+          short z = this.client.in.readShort();
+          byte mode = this.client.in.readByte();
+          byte block = this.client.in.readByte();
+          if (mode == 0x00){
+            // 0x00 means client wants to destroy the block
+            block = 0x00;
+            // we set it to air
+          }
+          this.client.clientToServer.put(new SetBlock(
+            x,
+            y,
+            z,
+            block
+          ));
+        }
+      }
+    }
+    catch (IOException | InterruptedException e){
+      System.out.println("Exception in ClientReader thread, client probably disconnected");
+      this.client.isDisconnected = true;
+      e.printStackTrace();
+    }
+  }
 }
 
 class Client extends Thread {
@@ -203,8 +275,11 @@ class Client extends Thread {
       out.writeShort(worldResponsePacket.z);
 
       ClientWriter clientWriter = new ClientWriter(this);
+      ClientReader clientReader = new ClientReader(this);
       clientWriter.start();
+      clientReader.start();
       clientWriter.join();
+      clientReader.join();
     }
     catch (IOException | InterruptedException e) {
       System.out.println("Something happened, client disconnected");

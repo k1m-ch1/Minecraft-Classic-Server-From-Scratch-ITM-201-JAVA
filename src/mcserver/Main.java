@@ -54,7 +54,6 @@ public class Main {
 
     scheduler.scheduleAtFixedRate(() -> {
       //TODO: move this removal job to someone else
-      clientList.removeIf(client -> client.isDisconnected);
       for(Client client: clientList){
         try{
           if (client.ready){
@@ -75,6 +74,7 @@ public class Main {
       //System.out.println("Clients: " + clientList.size());
       try{
         Packet p = clientToServer.take();
+        clientList.removeIf(client -> client.isDisconnected);
         if (p instanceof WorldRequest){
           WorldRequest worldRequestPacket = (WorldRequest) p;
           System.out.println("Requested for world");
