@@ -19,10 +19,12 @@ class SetBlock implements Packet{
 
 class Message implements Packet{
   byte playerID;
+  byte[] playerName; // add an extra parameter to make formatting chat a bit easier
   byte[] text;
 
-  Message(byte playerID, byte[] text){
+  Message(byte playerID, byte[] playerName, byte[] text){
     this.playerID = playerID;
+    this.playerName = playerName; // add an extra parameter to make formatting chat a bit easier
     this.text = text;
   }
 }

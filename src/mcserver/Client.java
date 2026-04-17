@@ -32,8 +32,10 @@ class ClientWriter extends Thread{
         Packet p = client.serverToClient.take();
         if (p instanceof Ping){
           this.client.out.writeByte(0x01);
+          /*
           System.out.println("Client got pinged!");
           System.out.println("Current position: " + this.client.x.get() + ", " + this.client.y.get() + ", " + this.client.z.get());
+          */
         }
         else if (p instanceof SpawnPlayer){
           SpawnPlayer spawnPlayerPacket = (SpawnPlayer) p;
@@ -77,8 +79,37 @@ class ClientWriter extends Thread{
           this.client.out.writeShort(setBlockPacket.z);
           this.client.out.writeByte(setBlockPacket.block);
         }
+        else if (p instanceof PositionAndOrientation){
+          // TODO: this is actually all incorrect, we dont' just send 0x08, we send changes in X, Y, Z, yaw, pitch using the 0x09 packet, and we do it occasionally, perhaps implement an event listener or something to check when the client changes position
+          PositionAndOrientation positionAndOrientationPacket = (PositionAndOrientation) p;
+          byte playerID = this.client.playerID;
+          if (positionAndOrientationPacket.playerID == this.client.playerID){
+            // if we're refering to ourselves, send a playerID of 0xff by convention in the protocol
+            playerID = (byte) 0xff;
+          }
+          this.client.out.writeByte(0x08); // position and orientation
+          this.client.out.writeByte(playerID);
+          this.client.out.writeShort(positionAndOrientationPacket.x);
+          this.client.out.writeShort(positionAndOrientationPacket.y);
+          this.client.out.writeShort(positionAndOrientationPacket.z);
+          this.client.out.writeByte(positionAndOrientationPacket.yaw);
+          this.client.out.writeByte(positionAndOrientationPacket.pitch);
+        }
+        else if (p instanceof Message){
+          Message messagePacket = (Message) p;
+          // just relay it (but i also need a prompt)
+          String prompt = "[" + new String(messagePacket.playerName).trim() +"]" + " : ";
+          byte[] promptAsByteArray = String.format("%-64s", prompt).getBytes(StandardCharsets.US_ASCII);
+          this.client.out.writeByte(0x0d); // packet ID
+          this.client.out.writeByte(messagePacket.playerID);
+          this.client.out.write(promptAsByteArray);
+
+          // now for the actual message
+          this.client.out.writeByte(0x0d); 
+          this.client.out.writeByte(messagePacket.playerID);
+          this.client.out.write(messagePacket.text);
+        }
         else{
-          //TODO: implement more packets
           //NOTE: remember that if the playerID is the same as ours, make sure to send the playerID as 0xff
           System.out.println("Client writer got an unimplemented packet of class: " + p.getClass());
         }
@@ -154,6 +185,7 @@ class ClientReader extends Thread{
           this.client.in.readFully(message);
           this.client.clientToServer.put(new Message(
             this.client.playerID,
+            this.client.playerName,
             message
           ));
         }
@@ -190,7 +222,6 @@ class Client extends Thread {
     BlockingQueue<Packet> clientToServer,
     byte playerID
   ) throws IOException {
-    // TODO: get rid of all these parameters (only need the socket and queue)
     this.clientSocket = clientSocket;
     this.clientToServer = clientToServer;
     this.in = new DataInputStream(clientSocket.getInputStream());

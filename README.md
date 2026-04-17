@@ -46,11 +46,11 @@ For the server:
 ### From the client's side
 
 - [x] receive connection to client
-- [] handle client's packet id which includes:
-  - [] player identification `0x00` (ignore all the security stuff)
-  - [] `0x05` set block (make sure to reply back with packet `0x06` to acknowledge)
-  - [] `0x08` position updates (no need for acknowledgement)
-  - [] `0x0d` messages (need to broadcast to the client that initialized it)
+- [x] handle client's packet id which includes:
+  - [x] player identification `0x00` (ignore all the security stuff)
+  - [x] `0x05` set block (make sure to reply back with packet `0x06` to acknowledge)
+  - [x] `0x08` position updates (no need for acknowledgement)
+  - [x] `0x0d` messages (need to broadcast to the client that initialized it)
 
 ### From the server's side
 
@@ -63,16 +63,22 @@ For the server:
   ~~- [] send 2 pings for some reason (let's see if we can reproduce it)~~
   - [] send a message using packet `0x0d` to everyone saying that a player has joined or some custom message.
   - [x] ping periodically
-  - [] receive `0x05` packages from the client, send `0x06` to acknowledge
+  - [x] receive `0x05` packages from the client, send `0x06` to acknowledge
 
 ### Multiplayer
 
 - [x] use threading to handle multiple sockets
 - [x] need everyone to share the same block array
 - [x] arbitrarily, but not randomly assign player ID to each player
-- [] broadcast messages to everyone using `0x0d`
-- [] update each user's world view when stuff changes (broadcast `0x06` packages to everyone)
+- [x] broadcast messages to everyone using `0x0d`
+- [x] update each user's world view when stuff changes (broadcast `0x06` packages to everyone)
 - [] handle player disconnect by broadcasting a `0x0c` despawn packet (handle errors well)
+- [] send changes in location to other players using `0x09` flags (or `0x0a` and `0x0b` flags)
+
+## bugs
+
+- [] hunt down the occasional `x.get()` doesn't exists since `x` is null for some reason when it should be an `AtomicInteger`
+- [] strings are only 64 bytes long! hunt down the errors!
 
 There are other protocols and features we can implement later if we do have time.
 

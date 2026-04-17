@@ -53,7 +53,6 @@ public class Main {
     ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     scheduler.scheduleAtFixedRate(() -> {
-      //TODO: move this removal job to someone else
       for(Client client: clientList){
         try{
           if (client.ready){
@@ -70,8 +69,6 @@ public class Main {
 
     // main loop
     while (true){
-      // TODO: handle client queue (slow)
-      //System.out.println("Clients: " + clientList.size());
       try{
         Packet p = clientToServer.take();
         clientList.removeIf(client -> client.isDisconnected);
@@ -96,6 +93,12 @@ public class Main {
               if (!clientToBroadcastSpawn.ready){
                 continue;
               }
+              String serverName = "Server";
+              byte[] serverNameAsByteArray = String.format("%-64s", serverName).getBytes(StandardCharsets.US_ASCII);
+
+              String welcomeMessage = "[" + new String(client.playerName).trim() + "]" + " has joined the game";
+              byte[] welcomeMessageAsByteArray = String.format("%-64s", welcomeMessage).getBytes(StandardCharsets.US_ASCII);
+
               clientToBroadcastSpawn.serverToClient.put(new SpawnPlayer(
                 client.playerID,
                 client.playerName,
@@ -105,10 +108,17 @@ public class Main {
                 yawSpawn,
                 pitchSpawn
               ));
-              System.out.println("Successfully sent broadcasted spawn to " + new String(clientToBroadcastSpawn.playerName).trim() + " with ID of " + clientToBroadcastSpawn.playerID);
+
+              // broadcast the message that a new player has joined
+              clientToBroadcastSpawn.serverToClient.put(new Message(
+                (byte) 0xff,
+                serverNameAsByteArray,
+                welcomeMessageAsByteArray
+              ));
+
+              //System.out.println("Successfully sent broadcasted spawn to " + new String(clientToBroadcastSpawn.playerName).trim() + " with ID of " + clientToBroadcastSpawn.playerID);
 
             }
-            // TODO: the client needs to spawn every player other than itself (since it has already done that)
             for (Client clientToSpawn: clientList){
               if (clientToSpawn.playerID == client.playerID || !clientToSpawn.ready){
                 continue;
@@ -142,7 +152,7 @@ public class Main {
         else if (p instanceof PositionAndOrientation){
           PositionAndOrientation positionAndOrientationPacket = (PositionAndOrientation) p;
           for (Client clientToUpdatePosition: clientList){
-            if ((clientToUpdatePosition.playerID == positionAndOrientationPacket.playerID)|| !clientToUpdatePosition.ready){
+            if ((clientToUpdatePosition.playerID == positionAndOrientationPacket.playerID) || !clientToUpdatePosition.ready){
               // we don't need to acknowledge the player who requested
               continue;
             }
