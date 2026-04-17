@@ -18,6 +18,31 @@ public class Main {
 
     NamedTag namedTag = NBTUtil.read("worlds/world.cw");
     CompoundTag world = (CompoundTag) namedTag.getTag();
+    // TODO: schedule a backup service
+    byte[] blockArray = ((ByteArrayTag) world.get("BlockArray")).getValue();
+    // x, y and z refers to the dimensions of the world
+    short x = ((ShortTag) world.get("X")).asShort();
+    short y = ((ShortTag) world.get("Y")).asShort();
+    short z = ((ShortTag) world.get("Z")).asShort();
+
+
+    /*
+      // spawn player
+      out.writeByte(0x07); // packet ID
+      out.writeByte(0xff); // player ID
+      out.write(username);
+      out.writeShort(((ShortTag) this.spawn.get("X")).asShort() * 32);
+      out.writeShort(((ShortTag) this.spawn.get("Y")).asShort() * 32 + 51);
+      out.writeShort(((ShortTag) this.spawn.get("Z")).asShort() * 32);
+      out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
+      out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
+    */
+    CompoundTag spawn = (CompoundTag) world.get("Spawn");
+    short xSpawn = (short)(((ShortTag) spawn.get("X")).asShort() * 32);
+    short ySpawn = (short)(((ShortTag) spawn.get("Y")).asShort() * 32 + 51);
+    short zSpawn = (short)(((ShortTag) spawn.get("Z")).asShort() * 32);
+    byte yawSpawn = ((ByteTag) spawn.get("H")).asByte();
+    byte pitchSpawn = ((ByteTag) spawn.get("P")).asByte();
     ServerSocket serverSocket = new ServerSocket(25565);
     BlockingQueue<Packet> clientToServer = new LinkedBlockingQueue<>();
     CopyOnWriteArrayList<Client> clientList = new CopyOnWriteArrayList<>();
@@ -46,10 +71,45 @@ public class Main {
     while (true){
       // TODO: handle client queue (slow)
       //System.out.println("Clients: " + clientList.size());
-      Packet p = clientToServer.poll(); 
-      if (p != null){
-        System.out.println("Server got class called: " + p.getClass());
+      try{
+        Packet p = clientToServer.take();
+        if (p instanceof WorldRequest){
+          WorldRequest worldRequestPacket = (WorldRequest) p;
+          System.out.println("Requested for world");
+          System.out.println("Player ID: " + worldRequestPacket.playerID);
+          System.out.println("Player name: " + new String(worldRequestPacket.playerName).trim());
+          for (Client client: clientList){
+            if (client.playerID != worldRequestPacket.playerID){
+              continue;
+            }
+            client.serverToClient.put(new WorldResponse(
+              blockArray,
+              x,
+              y,
+              z
+            ));
+            System.out.println("Successfully sent world response to " + new String(client.playerName).trim() + " with ID of " + client.playerID);
+            // broadcast spawn player to everyone
+            for (Client clientToBroadcastSpawn: clientList){
+              clientToBroadcastSpawn.serverToClient.put(new SpawnPlayer(
+                client.playerID,
+                client.playerName,
+                xSpawn,
+                ySpawn,
+                zSpawn,
+                yawSpawn,
+                pitchSpawn
+              ));
+              System.out.println("Successfully sent broadcasted spawn to " + new String(clientToBroadcastSpawn.playerName).trim() + " with ID of " + clientToBroadcastSpawn.playerID);
+            }
+          }
+        }
+        System.out.println("Got a packet of class: " + p.getClass());
       }
+      catch (InterruptedException e){
+          System.out.println("The main thread got interupted. Something must have went terribly wrong.");
+          e.printStackTrace();
+        }
     }
   }
 }

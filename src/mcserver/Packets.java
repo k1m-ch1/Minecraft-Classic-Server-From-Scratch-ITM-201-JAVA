@@ -99,13 +99,14 @@ class WorldRequest implements Packet{
 }
 
 class WorldResponse implements Packet{
-  // this contains info for both 0x03 and 0x04 packets 
-  byte[] byteArray;
+  // this contains info for both 0x03 (level data chunks) and 0x04 (level initialize) packets 
+  byte[] blockArray;
   short x;
   short y;
   short z;
-  WorldResponse(byte[] byteArray, short x, short y, short z){
-    this.byteArray = byteArray;
+  WorldResponse(byte[] blockArray, short x, short y, short z){
+    this.blockArray = blockArray;
+    // x, y, and z refers to the world size
     this.x = x;
     this.y = y;
     this.z = z;

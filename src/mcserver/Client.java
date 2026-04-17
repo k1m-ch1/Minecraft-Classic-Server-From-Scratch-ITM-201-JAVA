@@ -17,7 +17,7 @@ import net.querz.nbt.io.*;
 
 class ClientWriter extends Thread{
   // the goal of this thread is to take stuff out of the clientToServer queue and write it to the client appropriately
-  
+
 }
 
 class ClientReader extends Thread{
@@ -30,30 +30,19 @@ class Client extends Thread {
   Socket clientSocket;
   DataInputStream in;
   DataOutputStream out;
-  ByteArrayTag blockArray;
-  CompoundTag spawn;
-  ShortTag x;
-  ShortTag y;
-  ShortTag z;
+  byte playerID;
+  byte[] playerName;
   boolean ready = false;
   // if ready is false, we don't to flood the queue with ping requests
 
   public Client(
     Socket clientSocket,
     BlockingQueue<Packet> clientToServer,
-    ByteArrayTag blockArray, 
-    CompoundTag spawn,
-    ShortTag x,
-    ShortTag y,
-    ShortTag z
+    byte playerID
   ) throws IOException {
+    // TODO: get rid of all these parameters (only need the socket and queue)
     this.clientSocket = clientSocket;
     this.clientToServer = clientToServer;
-    this.blockArray = blockArray;
-    this.spawn = spawn;
-    this.x = x;
-    this.y = y;
-    this.z = z;
     this.in = new DataInputStream(clientSocket.getInputStream());
     this.out = new DataOutputStream(clientSocket.getOutputStream());
   }
@@ -75,7 +64,7 @@ class Client extends Thread {
       // username
       in.readFully(username);
       System.out.println("Username: " + new String(username).trim());
-
+      this.playerName = username;
       // verificationKey
       in.readFully(verificationKey);
       System.out.println("Verification key: " + new String(verificationKey).trim());
@@ -83,6 +72,8 @@ class Client extends Thread {
       // read unused byte
       in.readByte();
 
+
+      // TODO: turn these configurations into a .toml file
       // send out server identification
       out.writeByte(0x00); // packet ID
       out.writeByte(0x07); // protocol version
@@ -99,17 +90,26 @@ class Client extends Thread {
       out.writeByte(0x02);
 
       // mark it as ready (even though world is still loading) such that the main tread can write stuff into the queue
+      // TODO: make main thread give info for all this stuff
       this.ready = true;
-      System.out.println("Block array length: " + this.blockArray.length());
-      //System.out.println(this.blockArray.getValue());
+      this.clientToServer.put(new WorldRequest(
+        this.playerID,
+        this.playerName
+      ));
+      WorldResponse worldResponsePacket = (WorldResponse) this.serverToClient.take();
+      System.out.println("Client got the world response packet");
+      System.out.println("World size: " + worldResponsePacket.blockArray.length);
+      System.out.println("World x: " + worldResponsePacket.x);
+      System.out.println("World y: " + worldResponsePacket.y);
+      System.out.println("World z: " + worldResponsePacket.z);
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       GZIPOutputStream gzip = new GZIPOutputStream(baos);
       gzip.write(ByteBuffer
         .allocate(4)
-        .putInt(this.blockArray.length())
+        .putInt(worldResponsePacket.blockArray.length)
         .array()
       );
-      gzip.write(this.blockArray.getValue());
+      gzip.write(worldResponsePacket.blockArray);
       gzip.close();
       byte[] compressedByteArray = baos.toByteArray();
       for (int i = 0; i < compressedByteArray.length; i += 1024){
@@ -127,20 +127,29 @@ class Client extends Thread {
       
       // level finalize
       out.writeByte(0x04);
-      out.writeShort(this.x.asShort());
-      out.writeShort(this.y.asShort());
-      out.writeShort(this.z.asShort());
+      out.writeShort(worldResponsePacket.x);
+      out.writeShort(worldResponsePacket.y);
+      out.writeShort(worldResponsePacket.z);
+
+      SpawnPlayer spawnPlayerPacket = (SpawnPlayer) this.serverToClient.take();
+      System.out.println("Got a spawn player response");
+      System.out.println("Player name: " + new String(spawnPlayerPacket.playerName).trim());
+      System.out.println("Player ID: " + spawnPlayerPacket.playerID);
+      System.out.println("x: " + spawnPlayerPacket.x);
+      System.out.println("y: " + spawnPlayerPacket.y);
+      System.out.println("z: " + spawnPlayerPacket.z);
+      System.out.println("yaw: " + spawnPlayerPacket.yaw);
+      System.out.println("pitch: " + spawnPlayerPacket.pitch);
 
       // spawn player
       out.writeByte(0x07); // packet ID
       out.writeByte(0xff); // player ID
       out.write(username);
-      System.out.println("Spawn: " + this.spawn);
-      out.writeShort(((ShortTag) this.spawn.get("X")).asShort() * 32);
-      out.writeShort(((ShortTag) this.spawn.get("Y")).asShort() * 32 + 51);
-      out.writeShort(((ShortTag) this.spawn.get("Z")).asShort() * 32);
-      out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
-      out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
+      out.writeShort(spawnPlayerPacket.x);
+      out.writeShort(spawnPlayerPacket.y);
+      out.writeShort(spawnPlayerPacket.z);
+      out.writeByte(spawnPlayerPacket.yaw);
+      out.writeByte(spawnPlayerPacket.pitch);
 
       // the client has spawned
       while (true){
@@ -148,13 +157,14 @@ class Client extends Thread {
         if (p instanceof Ping){
           out.writeByte(0x01);
           System.out.println("Client got pinged!");
-          this.clientToServer.put(new Ping());
+          //this.clientToServer.put(new Ping());
         }
       }
     } 
     catch (IOException e) {
       System.out.println("Something happened, client disconnected");
       this.isDisconnected = true;
+      // TODO: need to send a DespawnPacket to the server
       e.printStackTrace();
     }
     catch (InterruptedException e){
