@@ -71,7 +71,8 @@ class ClientWriter extends Thread{
         }
         else{
           //TODO: implement more packets
-          System.out.println("Got an unimplemented packet of class: " + p.getClass());
+          //NOTE: remember that if the playerID is the same as ours, make sure to send the playerID as 0xff
+          System.out.println("Client writer got an unimplemented packet of class: " + p.getClass());
         }
       }
     }

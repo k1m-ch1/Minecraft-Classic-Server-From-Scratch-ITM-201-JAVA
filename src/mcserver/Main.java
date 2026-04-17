@@ -127,8 +127,6 @@ public class Main {
             }
           }
         }
-        // TODO: uncomment this and handle it further
-        /*
         else if (p instanceof SetBlock){
           SetBlock setBlockRequest = (SetBlock) p;
           // indexing according to the formula in the wiki
@@ -141,8 +139,28 @@ public class Main {
           }
           // not comfortable with changing deltas without correction mechanisms but... TCP is reliable right...?
         }
-        */
-        System.out.println("Got a packet of class: " + p.getClass());
+        else if (p instanceof PositionAndOrientation){
+          PositionAndOrientation positionAndOrientationPacket = (PositionAndOrientation) p;
+          for (Client clientToUpdatePosition: clientList){
+            if ((clientToUpdatePosition.playerID == positionAndOrientationPacket.playerID)|| !clientToUpdatePosition.ready){
+              // we don't need to acknowledge the player who requested
+              continue;
+            }
+            clientToUpdatePosition.serverToClient.put(positionAndOrientationPacket);
+          }
+        }
+        else if (p instanceof Message){
+          Message messagePacket = (Message) p;
+          for (Client clientToMessage: clientList){
+            if (!clientToMessage.ready){
+              continue;
+            }
+            clientToMessage.serverToClient.put(messagePacket);
+          }
+        }
+        else{
+          System.out.println("Main thread got an unimplemented class: " + p.getClass());
+        }
       }
       catch (InterruptedException e){
           System.out.println("The main thread got interupted. Something must have went terribly wrong.");
