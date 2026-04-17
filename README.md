@@ -49,8 +49,8 @@ For the server:
 - [] handle client's packet id which includes:
   - [] player identification `0x00` (ignore all the security stuff)
   - [] `0x05` set block (make sure to reply back with packet `0x06` to acknowledge)
-  - [] `0x08` position updates
-  - [] `0x0d` messages
+  - [] `0x08` position updates (no need for acknowledgement)
+  - [] `0x0d` messages (need to broadcast to the client that initialized it)
 
 ### From the server's side
 
@@ -67,12 +67,12 @@ For the server:
 
 ### Multiplayer
 
-- [] use threading to handle multiple sockets
-- [] need everyone to share the same block array
-- [] arbitrarily, but not randomly assign player ID to each player
+- [x] use threading to handle multiple sockets
+- [x] need everyone to share the same block array
+- [x] arbitrarily, but not randomly assign player ID to each player
 - [] broadcast messages to everyone using `0x0d`
 - [] update each user's world view when stuff changes (broadcast `0x06` packages to everyone)
-- [] handle player disconnect by broadcasting a `0x0c` despawn packet
+- [] handle player disconnect by broadcasting a `0x0c` despawn packet (handle errors well)
 
 There are other protocols and features we can implement later if we do have time.
 
@@ -92,6 +92,14 @@ There are other protocols and features we can implement later if we do have time
 - [java sockets](https://www.geeksforgeeks.org/java/socket-programming-in-java/)
 
 - NBT parser [here](https://github.com/Querz/NBT)
+
+- [og minecraft server](https://omniarchive.uk/archive/java/server/classic/)
+
+to run it, do: 
+
+```
+java -cp ./c1.10.jar com.mojang.minecraft.server.MinecraftServer
+```
 
 # What we'll use
 
@@ -148,14 +156,6 @@ So according to [this](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_
 
 - 1 byte of packet ID
 - some stuff
-
-I don't know why this was so hard to find but [this](https://omniarchive.uk/archive/java/server/classic/) is the actual minecraft classic server (that still works btw).
-
-to run it, do: 
-
-```
-java -cp ./c1.10.jar com.mojang.minecraft.server.MinecraftServer
-```
 
 Minecraft classic block type id is linked [here](https://minecraft.fandom.com/wiki/Java_Edition_data_values/Classic)
 

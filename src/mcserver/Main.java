@@ -64,10 +64,12 @@ public class Main {
         catch (InterruptedException e){
           System.out.println("Something went wrong..., marking the client as disconnected");
           client.isDisconnected = true;
+          // TODO: broadcast despawn (perhaps I should make that a method or something)
         }
       }
     }, 0, 1, TimeUnit.SECONDS);
 
+    // main loop
     while (true){
       // TODO: handle client queue (slow)
       //System.out.println("Clients: " + clientList.size());
@@ -91,6 +93,9 @@ public class Main {
             System.out.println("Successfully sent world response to " + new String(client.playerName).trim() + " with ID of " + client.playerID);
             // broadcast spawn player to everyone
             for (Client clientToBroadcastSpawn: clientList){
+              if (!clientToBroadcastSpawn.ready){
+                continue;
+              }
               clientToBroadcastSpawn.serverToClient.put(new SpawnPlayer(
                 client.playerID,
                 client.playerName,
@@ -101,15 +106,48 @@ public class Main {
                 pitchSpawn
               ));
               System.out.println("Successfully sent broadcasted spawn to " + new String(clientToBroadcastSpawn.playerName).trim() + " with ID of " + clientToBroadcastSpawn.playerID);
+
+            }
+            // TODO: the client needs to spawn every player other than itself (since it has already done that)
+            for (Client clientToSpawn: clientList){
+              if (clientToSpawn.playerID == client.playerID || !clientToSpawn.ready){
+                continue;
+              }
+              client.serverToClient.put(
+                new SpawnPlayer(
+                  clientToSpawn.playerID, // although it's not atomic, playerID is pretty much constant
+                  clientToSpawn.playerName,
+                  (short) clientToSpawn.x.get(),
+                  (short) clientToSpawn.y.get(),
+                  (short) clientToSpawn.z.get(),
+                  (byte) clientToSpawn.yaw.get(),
+                  (byte) clientToSpawn.pitch.get()
+                )
+              );
             }
           }
         }
+        // TODO: uncomment this and handle it further
+        /*
+        else if (p instanceof SetBlock){
+          SetBlock setBlockRequest = (SetBlock) p;
+          // indexing according to the formula in the wiki
+          blockArray[setBlockRequest.x + x*setBlockRequest.z + x*z*setBlockRequest.y] = setBlockRequest.block;
+          for (Client clientToSetBlock: clientList){
+            if (!clientToSetBlock.ready){
+              continue;
+            }
+            clientToSetBlock.serverToClient.put(setBlockRequest);
+          }
+          // not comfortable with changing deltas without correction mechanisms but... TCP is reliable right...?
+        }
+        */
         System.out.println("Got a packet of class: " + p.getClass());
       }
       catch (InterruptedException e){
           System.out.println("The main thread got interupted. Something must have went terribly wrong.");
           e.printStackTrace();
-        }
+      }
     }
   }
 }

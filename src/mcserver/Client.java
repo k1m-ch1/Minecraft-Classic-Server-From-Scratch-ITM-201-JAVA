@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 import net.querz.nbt.tag.*;
 import net.querz.nbt.io.*;
@@ -16,13 +17,75 @@ import net.querz.nbt.io.*;
 
 
 class ClientWriter extends Thread{
-  // the goal of this thread is to take stuff out of the clientToServer queue and write it to the client appropriately
+  // the goal of this thread is to take stuff out of the serverToClient queue and write it to the client appropriately
 
+  Client client;
+  ClientWriter(
+    Client client
+  ){
+    this.client = client;
+  }
+
+  public void run() {
+    try{
+      while (true){
+        Packet p = client.serverToClient.take();
+        if (p instanceof Ping){
+          this.client.out.writeByte(0x01);
+          System.out.println("Client got pinged!");
+          System.out.println("Current position: " + this.client.x.get() + ", " + this.client.y.get() + ", " + this.client.z.get());
+        }
+        else if (p instanceof SpawnPlayer){
+          SpawnPlayer spawnPlayerPacket = (SpawnPlayer) p;
+          /*
+          System.out.println("Got a spawn player response");
+          System.out.println("Player name: " + new String(spawnPlayerPacket.playerName).trim());
+          System.out.println("Player ID: " + spawnPlayerPacket.playerID);
+          System.out.println("x: " + spawnPlayerPacket.x);
+          System.out.println("y: " + spawnPlayerPacket.y);
+          System.out.println("z: " + spawnPlayerPacket.z);
+          System.out.println("yaw: " + spawnPlayerPacket.yaw);
+          System.out.println("pitch: " + spawnPlayerPacket.pitch);
+          */
+          if (spawnPlayerPacket.playerID == client.playerID){
+            System.out.println(client.playerID);
+            // spawn player
+            this.client.x = new AtomicInteger(spawnPlayerPacket.x);
+            this.client.y = new AtomicInteger(spawnPlayerPacket.y);
+            this.client.z = new AtomicInteger(spawnPlayerPacket.z);
+            this.client.yaw = new AtomicInteger(spawnPlayerPacket.yaw);
+            this.client.pitch = new AtomicInteger(spawnPlayerPacket.pitch);
+            this.client.out.writeByte(0x07); // packet ID
+            this.client.out.writeByte(0xff); // player ID (0xff means spawn ourself)
+          }
+          else{
+            this.client.out.writeByte(0x07); // packet ID
+            this.client.out.writeByte(spawnPlayerPacket.playerID); // player ID (0xff means spawn ourself)
+          }
+          this.client.out.write(spawnPlayerPacket.playerName);
+          this.client.out.writeShort(spawnPlayerPacket.x);
+          this.client.out.writeShort(spawnPlayerPacket.y);
+          this.client.out.writeShort(spawnPlayerPacket.z);
+          this.client.out.writeByte(spawnPlayerPacket.yaw);
+          this.client.out.writeByte(spawnPlayerPacket.pitch);
+        }
+        else{
+          //TODO: implement more packets
+          System.out.println("Got an unimplemented packet of class: " + p.getClass());
+        }
+      }
+    }
+    catch (IOException | InterruptedException e){
+      System.out.println("Exception in ClientWriter thread, client probably disconnected");
+      e.printStackTrace();
+    }
+  }
 }
 
 class ClientReader extends Thread{
   // the goal of this thread is to read stuff from the client and ensure that it's in the right format to send to the serverToClient thread
 }
+
 class Client extends Thread {
   boolean isDisconnected = false;
   BlockingQueue<Packet> serverToClient = new LinkedBlockingQueue<>();
@@ -30,6 +93,12 @@ class Client extends Thread {
   Socket clientSocket;
   DataInputStream in;
   DataOutputStream out;
+  AtomicInteger x;
+  AtomicInteger y;
+  AtomicInteger z;
+  AtomicInteger yaw;
+  AtomicInteger pitch;
+
   byte playerID;
   byte[] playerName;
   boolean ready = false;
@@ -45,6 +114,7 @@ class Client extends Thread {
     this.clientToServer = clientToServer;
     this.in = new DataInputStream(clientSocket.getInputStream());
     this.out = new DataOutputStream(clientSocket.getOutputStream());
+    this.playerID = playerID;
   }
 
   public void run() {
@@ -90,18 +160,19 @@ class Client extends Thread {
       out.writeByte(0x02);
 
       // mark it as ready (even though world is still loading) such that the main tread can write stuff into the queue
-      // TODO: make main thread give info for all this stuff
-      this.ready = true;
       this.clientToServer.put(new WorldRequest(
         this.playerID,
         this.playerName
       ));
       WorldResponse worldResponsePacket = (WorldResponse) this.serverToClient.take();
+      this.ready = true;
+      /*
       System.out.println("Client got the world response packet");
       System.out.println("World size: " + worldResponsePacket.blockArray.length);
       System.out.println("World x: " + worldResponsePacket.x);
       System.out.println("World y: " + worldResponsePacket.y);
       System.out.println("World z: " + worldResponsePacket.z);
+      */
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       GZIPOutputStream gzip = new GZIPOutputStream(baos);
       gzip.write(ByteBuffer
@@ -131,45 +202,14 @@ class Client extends Thread {
       out.writeShort(worldResponsePacket.y);
       out.writeShort(worldResponsePacket.z);
 
-      SpawnPlayer spawnPlayerPacket = (SpawnPlayer) this.serverToClient.take();
-      System.out.println("Got a spawn player response");
-      System.out.println("Player name: " + new String(spawnPlayerPacket.playerName).trim());
-      System.out.println("Player ID: " + spawnPlayerPacket.playerID);
-      System.out.println("x: " + spawnPlayerPacket.x);
-      System.out.println("y: " + spawnPlayerPacket.y);
-      System.out.println("z: " + spawnPlayerPacket.z);
-      System.out.println("yaw: " + spawnPlayerPacket.yaw);
-      System.out.println("pitch: " + spawnPlayerPacket.pitch);
-
-      // spawn player
-      out.writeByte(0x07); // packet ID
-      out.writeByte(0xff); // player ID
-      out.write(username);
-      out.writeShort(spawnPlayerPacket.x);
-      out.writeShort(spawnPlayerPacket.y);
-      out.writeShort(spawnPlayerPacket.z);
-      out.writeByte(spawnPlayerPacket.yaw);
-      out.writeByte(spawnPlayerPacket.pitch);
-
-      // the client has spawned
-      while (true){
-        Packet p = serverToClient.take();
-        if (p instanceof Ping){
-          out.writeByte(0x01);
-          System.out.println("Client got pinged!");
-          //this.clientToServer.put(new Ping());
-        }
-      }
-    } 
-    catch (IOException e) {
+      ClientWriter clientWriter = new ClientWriter(this);
+      clientWriter.start();
+      clientWriter.join();
+    }
+    catch (IOException | InterruptedException e) {
       System.out.println("Something happened, client disconnected");
       this.isDisconnected = true;
       // TODO: need to send a DespawnPacket to the server
-      e.printStackTrace();
-    }
-    catch (InterruptedException e){
-      System.out.println("InterruptedException, client probably disconnected");
-      this.isDisconnected = true;
       e.printStackTrace();
     }
   }
