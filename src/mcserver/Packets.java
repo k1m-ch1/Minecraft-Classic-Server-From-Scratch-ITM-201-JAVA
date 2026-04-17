@@ -86,3 +86,30 @@ class DespawnPlayer implements Packet{
     this.playerID = playerID;
   }
 }
+
+// from here, there's just going to be some miscellaneous packets to communicate between the world and the client
+
+class WorldRequest implements Packet{
+  byte playerID;
+  byte[] playerName;
+  WorldRequest(byte playerID, byte[] playerName){
+    this.playerID = playerID;
+    this.playerName = playerName;
+  }
+}
+
+class WorldResponse implements Packet{
+  // this contains info for both 0x03 and 0x04 packets 
+  byte[] byteArray;
+  short x;
+  short y;
+  short z;
+  WorldResponse(byte[] byteArray, short x, short y, short z){
+    this.byteArray = byteArray;
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+}
+
+// NOTE: the world thread sends WorldResponse and then broadcast a SpawnPlayer packet, and then marks the client as ready (even though the client thread is probably still loading the 0x03 packets). This ensures that after one .take, we're left with a spawn packet to be delegated to the ClientWriter thread.

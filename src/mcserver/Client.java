@@ -14,9 +14,19 @@ import net.querz.nbt.tag.*;
 import net.querz.nbt.io.*;
 
 
+
+class ClientWriter extends Thread{
+  // the goal of this thread is to take stuff out of the clientToServer queue and write it to the client appropriately
+  
+}
+
+class ClientReader extends Thread{
+  // the goal of this thread is to read stuff from the client and ensure that it's in the right format to send to the serverToClient thread
+}
 class Client extends Thread {
   boolean isDisconnected = false;
   BlockingQueue<Packet> serverToClient = new LinkedBlockingQueue<>();
+  BlockingQueue<Packet> clientToServer;
   Socket clientSocket;
   DataInputStream in;
   DataOutputStream out;
@@ -25,9 +35,12 @@ class Client extends Thread {
   ShortTag x;
   ShortTag y;
   ShortTag z;
+  boolean ready = false;
+  // if ready is false, we don't to flood the queue with ping requests
 
   public Client(
-    Socket clientSocket, 
+    Socket clientSocket,
+    BlockingQueue<Packet> clientToServer,
     ByteArrayTag blockArray, 
     CompoundTag spawn,
     ShortTag x,
@@ -35,6 +48,7 @@ class Client extends Thread {
     ShortTag z
   ) throws IOException {
     this.clientSocket = clientSocket;
+    this.clientToServer = clientToServer;
     this.blockArray = blockArray;
     this.spawn = spawn;
     this.x = x;
@@ -83,7 +97,9 @@ class Client extends Thread {
       
       // level initalize
       out.writeByte(0x02);
-      
+
+      // mark it as ready (even though world is still loading) such that the main tread can write stuff into the queue
+      this.ready = true;
       System.out.println("Block array length: " + this.blockArray.length());
       //System.out.println(this.blockArray.getValue());
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -108,6 +124,7 @@ class Client extends Thread {
         out.writeByte(percentageCompleted); // percent complete;
         System.out.println("Percentage completed: " + percentageCompleted);
       }
+      
       // level finalize
       out.writeByte(0x04);
       out.writeShort(this.x.asShort());
@@ -120,15 +137,18 @@ class Client extends Thread {
       out.write(username);
       System.out.println("Spawn: " + this.spawn);
       out.writeShort(((ShortTag) this.spawn.get("X")).asShort() * 32);
-      out.writeShort(((ShortTag) this.spawn.get("Y")).asShort() * 32);
+      out.writeShort(((ShortTag) this.spawn.get("Y")).asShort() * 32 + 51);
       out.writeShort(((ShortTag) this.spawn.get("Z")).asShort() * 32);
       out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
       out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
 
+      // the client has spawned
       while (true){
         Packet p = serverToClient.take();
         if (p instanceof Ping){
           out.writeByte(0x01);
+          System.out.println("Client got pinged!");
+          this.clientToServer.put(new Ping());
         }
       }
     } 

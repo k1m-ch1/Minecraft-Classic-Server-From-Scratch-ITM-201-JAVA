@@ -24,17 +24,15 @@ public class Main {
     Accept acceptThread = new Accept(serverSocket, clientList, clientToServer);
     acceptThread.start();
 
-    // start heartbeat service
+    // start heartbeat scheduler
     ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     scheduler.scheduleAtFixedRate(() -> {
-      //TODO: move this removal job to someone else
       clientList.removeIf(client -> client.isDisconnected);
+      // handle pinging (fast)
       for(Client client: clientList){
         try{
-          if (client.ready){
-            client.serverToClient.put(new Ping());
-          }
+          client.serverToClient.put(new Ping());
         }
         catch (InterruptedException e){
           System.out.println("Something went wrong..., marking the client as disconnected");
@@ -48,7 +46,7 @@ public class Main {
       //System.out.println("Clients: " + clientList.size());
       Packet p = clientToServer.poll(); 
       if (p != null){
-        System.out.println("Server got class called: " + p.getClass());
+        System.out.println("Got a class called: " + p.getClass());
       }
     }
   }

@@ -14,10 +14,16 @@ import net.querz.nbt.io.*;
 class Accept extends Thread{
   ServerSocket serverSocket; 
   CopyOnWriteArrayList<Client> clientList;
+  BlockingQueue<Packet> clientToServer;
 
-  Accept(ServerSocket serverSocket, CopyOnWriteArrayList<Client> clientList){
+  Accept(
+    ServerSocket serverSocket, 
+    CopyOnWriteArrayList<Client> clientList,
+    BlockingQueue<Packet> clientToServer
+  ){
     this.serverSocket = serverSocket;
     this.clientList = clientList;
+    this.clientToServer = clientToServer;
   }
 
   public void run(){
@@ -28,6 +34,7 @@ class Accept extends Thread{
       while (true){
         Socket clientSocket = serverSocket.accept();
         Client clientThread = new Client(clientSocket,
+          this.clientToServer,
           (ByteArrayTag) world.get("BlockArray"),
           (CompoundTag) world.get("Spawn"),
           (ShortTag) world.get("X"),
