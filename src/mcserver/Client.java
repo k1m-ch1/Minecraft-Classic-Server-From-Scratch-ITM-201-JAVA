@@ -60,7 +60,7 @@ class ClientWriter extends Thread{
           }
           else{
             this.client.out.writeByte(0x07); // packet ID
-            this.client.out.writeByte(spawnPlayerPacket.playerID); // player ID (0xff means spawn ourself)
+            this.client.out.writeByte(spawnPlayerPacket.playerID);
           }
           this.client.out.write(spawnPlayerPacket.playerName);
           this.client.out.writeShort(spawnPlayerPacket.x);
@@ -68,6 +68,14 @@ class ClientWriter extends Thread{
           this.client.out.writeShort(spawnPlayerPacket.z);
           this.client.out.writeByte(spawnPlayerPacket.yaw);
           this.client.out.writeByte(spawnPlayerPacket.pitch);
+        }
+        else if (p instanceof SetBlock){
+          SetBlock setBlockPacket = (SetBlock) p;
+          this.client.out.writeByte(0x06); // packet ID
+          this.client.out.writeShort(setBlockPacket.x);
+          this.client.out.writeShort(setBlockPacket.y);
+          this.client.out.writeShort(setBlockPacket.z);
+          this.client.out.writeByte(setBlockPacket.block);
         }
         else{
           //TODO: implement more packets
@@ -97,7 +105,25 @@ class ClientReader extends Thread{
     try{
       while (true){
         byte packetID = this.client.in.readByte();
-        if (packetID == 0x08){
+        if (packetID == 0x05){
+          short x = this.client.in.readShort();
+          short y = this.client.in.readShort();
+          short z = this.client.in.readShort();
+          byte mode = this.client.in.readByte();
+          byte block = this.client.in.readByte();
+          if (mode == 0x00){
+            // 0x00 means client wants to destroy the block
+            block = 0x00;
+            // we set it to air
+          }
+          this.client.clientToServer.put(new SetBlock(
+            x,
+            y,
+            z,
+            block
+          ));
+        }
+        else if (packetID == 0x08){
           // 0x08 is the position and orientation packet
           byte playerID = this.client.in.readByte();
           short x = this.client.in.readShort();
@@ -129,24 +155,6 @@ class ClientReader extends Thread{
           this.client.clientToServer.put(new Message(
             this.client.playerID,
             message
-          ));
-        }
-        else if(packetID == 0x05){
-          short x = this.client.in.readShort();
-          short y = this.client.in.readShort();
-          short z = this.client.in.readShort();
-          byte mode = this.client.in.readByte();
-          byte block = this.client.in.readByte();
-          if (mode == 0x00){
-            // 0x00 means client wants to destroy the block
-            block = 0x00;
-            // we set it to air
-          }
-          this.client.clientToServer.put(new SetBlock(
-            x,
-            y,
-            z,
-            block
           ));
         }
       }
