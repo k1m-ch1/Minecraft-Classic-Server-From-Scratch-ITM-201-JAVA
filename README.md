@@ -79,6 +79,9 @@ For the server:
 
 - [] hunt down the occasional `x.get()` doesn't exists since `x` is null for some reason when it should be an `AtomicInteger`
 - [] strings are only 64 bytes long! hunt down the errors!
+- [] misplaced spawn packets bug
+- [] place configs in the `server.properties`
+- [] accept thread might have redundant parameters
 
 There are other protocols and features we can implement later if we do have time.
 
