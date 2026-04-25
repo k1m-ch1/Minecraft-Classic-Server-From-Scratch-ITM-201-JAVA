@@ -60,8 +60,13 @@ public class Main {
           }
         } catch (InterruptedException e) {
           System.out.println("Something went wrong..., marking the client as disconnected");
-          client.isDisconnected = true;
-          // TODO: broadcast despawn (perhaps I should make that a method or something)
+          try{
+            client.clientToServer.put(new Despawn(client.playerID, client.playerName));
+          }
+          catch (InterruptedException err){
+            System.out.println("Thread got interrupted while writing to clientToServer array. Something really bad must've happened.");
+            err.printStackTrace();
+          }
         }
       }
     }, 0, 1, TimeUnit.SECONDS);
@@ -70,7 +75,6 @@ public class Main {
     while (true) {
       try {
         Packet p = clientToServer.take();
-        clientList.removeIf(client -> client.isDisconnected);
         if (p instanceof WorldRequest) {
           WorldRequest worldRequestPacket = (WorldRequest) p;
           System.out.println("Requested for world");
@@ -92,6 +96,7 @@ public class Main {
               if (!clientToBroadcastSpawn.ready) {
                 continue;
               }
+              // TODO: make this in server.properties
               String serverName = "Server";
               byte[] serverNameAsByteArray = String.format("%-64s", serverName).getBytes(StandardCharsets.US_ASCII);
 
@@ -139,7 +144,6 @@ public class Main {
           // indexing according to the formula in the wiki
           blockArray[setBlockRequest.x + x * setBlockRequest.z + x * z * setBlockRequest.y] = setBlockRequest.block;
           world.putByteArray("BlockArray", blockArray);
-          System.out.println(world.keySet());
           // I know that we shouldn't write to file in the main thread... but... it should be fine...
           NBTUtil.write(world, worldPath);
           for (Client clientToSetBlock : clientList) {
@@ -169,7 +173,18 @@ public class Main {
             }
             clientToMessage.serverToClient.put(messagePacket);
           }
-        } else {
+        } 
+        else if (p instanceof Despawn){
+          Despawn despawnPacket = (Despawn) p;
+          clientList.removeIf(client -> client.playerID == despawnPacket.playerID);
+          for (Client clientToRelay : clientList) {
+            if (!clientToRelay.ready) {
+              continue;
+            }
+            clientToRelay.serverToClient.put(despawnPacket);
+          }
+        }
+        else {
           System.out.println("Main thread got an unimplemented class: " + p.getClass());
         }
       } catch (InterruptedException e) {

@@ -115,5 +115,15 @@ class WorldResponse implements Packet{
   }
 }
 
+class Despawn implements Packet{
+  byte playerID;
+  byte[] playerName;
+
+  Despawn(byte playerID, byte[] playerName){
+    this.playerID = playerID;
+    this.playerName = playerName;
+  }
+}
 
 // NOTE: the world thread sends WorldResponse and then broadcast a SpawnPlayer packet, and then marks the client as ready (even though the client thread is probably still loading the 0x03 packets). This ensures that after one .take, we're left with a spawn packet to be delegated to the ClientWriter thread.
+

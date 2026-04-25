@@ -107,7 +107,23 @@ class ClientWriter extends Thread {
           this.client.out.writeByte(0x0d);
           this.client.out.writeByte(messagePacket.playerID);
           this.client.out.write(messagePacket.text);
-        } else {
+        } 
+        else if (p instanceof Despawn){
+          Despawn despawnPacket = (Despawn) p;
+          this.client.out.writeByte(0x0c); // despawn packet ID is 0x0c
+          this.client.out.writeByte(despawnPacket.playerID);
+
+          // send a despawn message TODO: make the despawn message configurable in the server.properties file?
+          String despawnMessageFormat = "[%s] just disconnected";
+          String despawnMessage = String.format(despawnMessageFormat, new String(despawnPacket.playerName).trim());
+          byte[] despawnMessageAsByteArray = String.format("%-64s", despawnMessage).getBytes(StandardCharsets.US_ASCII);
+          this.client.serverToClient.put(new Message(
+            despawnPacket.playerID,
+            despawnPacket.playerName,
+            despawnMessageAsByteArray
+          ));
+        }
+        else {
           // NOTE: remember that if the playerID is the same as ours, make sure to send
           // the playerID as 0xff
           System.out.println("Client writer got an unimplemented packet of class: " + p.getClass());
@@ -115,7 +131,13 @@ class ClientWriter extends Thread {
       }
     } catch (IOException | InterruptedException e) {
       System.out.println("Exception in ClientWriter thread, client probably disconnected");
-      this.client.isDisconnected = true;
+      try{
+        this.client.clientToServer.put(new Despawn(this.client.playerID, this.client.playerName));
+      }
+      catch (InterruptedException err){
+        System.out.println("Thread got interrupted while writing to clientToServer array. Something really bad must've happened.");
+        err.printStackTrace();
+      }
       e.printStackTrace();
     }
   }
@@ -193,14 +215,21 @@ class ClientReader extends Thread {
       }
     } catch (IOException | InterruptedException e) {
       System.out.println("Exception in ClientReader thread, client probably disconnected");
-      this.client.isDisconnected = true;
+
+      try{
+        this.client.clientToServer.put(new Despawn(this.client.playerID, this.client.playerName));
+      }
+      catch (InterruptedException err){
+        System.out.println("Thread got interrupted while writing to clientToServer array. Something really bad must've happened.");
+        err.printStackTrace();
+      }
+
       e.printStackTrace();
     }
   }
 }
 
 class Client extends Thread {
-  boolean isDisconnected = false;
   BlockingQueue<Packet> serverToClient = new LinkedBlockingQueue<>();
   BlockingQueue<Packet> clientToServer;
   Socket clientSocket;
@@ -320,7 +349,6 @@ class Client extends Thread {
       clientReader.join();
     } catch (IOException | InterruptedException e) {
       System.out.println("Something happened, client disconnected");
-      this.isDisconnected = true;
       // TODO: need to send a DespawnPacket to the server
       e.printStackTrace();
     }
