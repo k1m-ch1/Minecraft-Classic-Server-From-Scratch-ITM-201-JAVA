@@ -18,7 +18,7 @@ class Accept extends Thread{
   byte playerIDCounter = 0;
 
   Accept(
-    ServerSocket serverSocket, 
+    ServerSocket serverSocket,
     CopyOnWriteArrayList<Client> clientList,
     BlockingQueue<Packet> clientToServer
   ){
@@ -31,7 +31,6 @@ class Accept extends Thread{
   public void run(){
     try{
       // TODO: create a .toml or .yaml or something file to store all the configurations
-
       while (true){
         Socket clientSocket = serverSocket.accept();
         Client clientThread = new Client(

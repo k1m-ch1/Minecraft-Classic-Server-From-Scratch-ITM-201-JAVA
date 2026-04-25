@@ -54,14 +54,14 @@ For the server:
 
 ### From the server's side
 
-- [] talk to client at the right times
+- [x] talk to client at the right times
   - [x] send a `0x00` packet 
   - [x] send a `0x02` packet to ask the client to expect a bunch of data in coming
   - [x] send a bunch of `0x03` packets
   - [x] send a `0x04` at the end to summarize
   - [x] send packet `0x07` to spawn the player
   ~~- [] send 2 pings for some reason (let's see if we can reproduce it)~~
-  - [] send a message using packet `0x0d` to everyone saying that a player has joined or some custom message.
+  - [x] send a message using packet `0x0d` to everyone saying that a player has joined or some custom message.
   - [x] ping periodically
   - [x] receive `0x05` packages from the client, send `0x06` to acknowledge
 
@@ -72,8 +72,8 @@ For the server:
 - [x] arbitrarily, but not randomly assign player ID to each player
 - [x] broadcast messages to everyone using `0x0d`
 - [x] update each user's world view when stuff changes (broadcast `0x06` packages to everyone)
-- [] handle player disconnect by broadcasting a `0x0c` despawn packet (handle errors well)
-- [] send changes in location to other players using `0x09` flags (or `0x0a` and `0x0b` flags)
+- [x] handle player disconnect by broadcasting a `0x0c` despawn packet (handle errors well)
+~~- [x] send changes in location to other players using `0x09` flags (or `0x0a` and `0x0b` flags)~~ (we can acually just use the `PositionAndOrientation` packets)
 
 ## bugs
 
@@ -81,7 +81,7 @@ For the server:
 - [] strings are only 64 bytes long! hunt down the errors!
 - [] misplaced spawn packets bug
 - [] place configs in the `server.properties`
-- [] accept thread might have redundant parameters
+~~- [] accept thread might have redundant parameters~~
 
 There are other protocols and features we can implement later if we do have time.
 
