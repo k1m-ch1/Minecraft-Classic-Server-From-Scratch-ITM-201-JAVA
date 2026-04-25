@@ -82,10 +82,9 @@ class ClientWriter extends Thread {
           // occasionally, perhaps implement an event listener or something to check when
           // the client changes position
           PositionAndOrientation positionAndOrientationPacket = (PositionAndOrientation) p;
-          byte playerID = this.client.playerID;
-          if (positionAndOrientationPacket.playerID == this.client.playerID) {
-            // if we're refering to ourselves, send a playerID of 0xff by convention in the
-            // protocol
+          byte playerID = positionAndOrientationPacket.playerID;
+          if (playerID == this.client.playerID){
+            // if we're refering to ourselves, send a playerID of 0xff by convention in the protocol
             playerID = (byte) 0xff;
           }
           this.client.out.writeByte(0x08); // position and orientation
@@ -161,20 +160,27 @@ class ClientReader extends Thread {
           byte yaw = this.client.in.readByte();
           byte pitch = this.client.in.readByte();
 
-          this.client.x = new AtomicInteger(x);
-          this.client.y = new AtomicInteger(y);
-          this.client.z = new AtomicInteger(z);
-          this.client.yaw = new AtomicInteger(yaw);
-          this.client.pitch = new AtomicInteger(pitch);
-
-          this.client.clientToServer.put(new PositionAndOrientation(
+          if (this.client.x.get() != x ||
+          this.client.y.get() != y ||
+          this.client.z.get() != z ||
+          this.client.yaw.get() != yaw ||
+          this.client.pitch.get() != pitch){
+            this.client.x = new AtomicInteger(x);
+            this.client.y = new AtomicInteger(y);
+            this.client.z = new AtomicInteger(z);
+            this.client.yaw = new AtomicInteger(yaw);
+            this.client.pitch = new AtomicInteger(pitch);
+            this.client.clientToServer.put(new PositionAndOrientation(
               this.client.playerID,
               x,
               y,
               z,
               yaw,
-              pitch));
-        } else if (packetID == 0x0d) {
+              pitch
+            ));
+          }
+        }
+        else if(packetID == 0x0d) {
           // 0x0d is the message packet
           byte message[] = new byte[64];
           byte messageColor = this.client.in.readByte();

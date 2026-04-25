@@ -36,6 +36,7 @@ public class Main {
      * out.writeByte(((ByteTag) this.spawn.get("H")).asByte());
      * out.writeByte(((ByteTag) this.spawn.get("P")).asByte());
      */
+    
     CompoundTag spawn = (CompoundTag) world.get("Spawn");
     short xSpawn = (short) (((ShortTag) spawn.get("X")).asShort() * 32);
     short ySpawn = (short) (((ShortTag) spawn.get("Y")).asShort() * 32 + 51);
@@ -137,6 +138,7 @@ public class Main {
           SetBlock setBlockRequest = (SetBlock) p;
           // indexing according to the formula in the wiki
           blockArray[setBlockRequest.x + x * setBlockRequest.z + x * z * setBlockRequest.y] = setBlockRequest.block;
+          world.putByteArray("BlockArray", blockArray);
           for (Client clientToSetBlock : clientList) {
             if (!clientToSetBlock.ready) {
               continue;
