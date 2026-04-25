@@ -12,11 +12,11 @@ import net.querz.nbt.tag.*;
 import net.querz.nbt.io.*;
 
 public class Main {
-
   public static void main(String[] args) throws IOException {
     System.out.println("Starting a new server...");
-
-    NamedTag namedTag = NBTUtil.read("worlds/world.cw");
+    //TODO: make the world file into a config file
+    final String worldPath = "worlds/world.cw";
+    NamedTag namedTag = NBTUtil.read(worldPath);
     CompoundTag world = (CompoundTag) namedTag.getTag();
     // TODO: schedule a backup service
     byte[] blockArray = ((ByteArrayTag) world.get("BlockArray")).getValue();
@@ -139,6 +139,9 @@ public class Main {
           // indexing according to the formula in the wiki
           blockArray[setBlockRequest.x + x * setBlockRequest.z + x * z * setBlockRequest.y] = setBlockRequest.block;
           world.putByteArray("BlockArray", blockArray);
+          System.out.println(world.keySet());
+          // I know that we shouldn't write to file in the main thread... but... it should be fine...
+          NBTUtil.write(world, worldPath);
           for (Client clientToSetBlock : clientList) {
             if (!clientToSetBlock.ready) {
               continue;
