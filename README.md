@@ -1,11 +1,14 @@
 # About
 
-This is a very simple implementation of the minecraft classic server in Java. [Github link](.
-
+This is a very simple implementation of the minecraft classic server in Java. [Github link](https://github.com/k1m-ch1/Minecraft-Classic-Server-From-Scratch-ITM-201-JAVA).
 
 # Usage
 
 To run the server, just clone the repository.
+
+```
+git clone https://github.com/k1m-ch1/Minecraft-Classic-Server-From-Scratch-ITM-201-JAVA.git minecraft-classic-server
+```
 
 # Setting up
 
