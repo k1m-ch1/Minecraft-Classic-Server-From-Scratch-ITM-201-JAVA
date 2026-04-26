@@ -10,22 +10,46 @@ To run the server, just clone the repository.
 git clone https://github.com/k1m-ch1/Minecraft-Classic-Server-From-Scratch-ITM-201-JAVA.git minecraft-classic-server
 ```
 
-# Setting up
+(Optional) you can edit the `server.properties` file. Note that values that are more than 64 characters long will probably be truncated.
 
-So for our client, we'll use [ClassiCube](https://www.classicube.net/).
+The default `server.properties` file:
 
-We'll be writing a very simple server to support ClassiCube, using the [original server](https://omniarchive.uk/archive/java/server/classic/) as our reference.
+```
+motd=Welcome to my Minecraft Server
+server-name=Minecraft Server
+port=25565
+spawn-message-format=[%s] joined
+despawn-message-format=[%s] left the game
+world-path=worlds/world.cw
+```
 
+If you want to use a custom world, simply replace the default `worlds/world.cw` with your own ClassiWorld (`.cw`) file. Or just link it to your file in `server.properties`.
+
+Build it using the script provided
 
 ```
 ./build
 ```
 
-And to run:
+Now run it
 
 ```
 ./run
 ```
+
+It will be hosted on the port provided in the `server.properties` file (default is `25565`).
+
+You can use [ClassiCube](https://www.classicube.net/) as a client to join.
+
+## Cloudflare setup
+
+As a client, to connect:
+
+```
+cloudflared access tcp --hostname minecraft-classic.k1mch1.space --url localhost:25565
+```
+
+Now just join normally using `localhost` over at port `25565`, or whatever port you specified.
 
 # Architecture
 
@@ -260,9 +284,3 @@ index = x + width*z + width*depth*y
 ```
 
 So we just do that until we reach the end of the byte array. Each byte of the array represents a block type, according to this table [linked here](https://minecraft.fandom.com/wiki/Java_Edition_data_values/Classic).
-
-
-[1, 2, 4, 5, 7, 3]
-
-
-
