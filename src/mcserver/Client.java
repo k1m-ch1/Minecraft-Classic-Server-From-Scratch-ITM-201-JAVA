@@ -31,26 +31,9 @@ class ClientWriter extends Thread {
         Packet p = client.serverToClient.take();
         if (p instanceof Ping) {
           this.client.out.writeByte(0x01);
-          /*
-           * System.out.println("Client got pinged!");
-           * System.out.println("Current position: " + this.client.x.get() + ", " +
-           * this.client.y.get() + ", " + this.client.z.get());
-           */
         } else if (p instanceof SpawnPlayer) {
           SpawnPlayer spawnPlayerPacket = (SpawnPlayer) p;
-          /*
-           * System.out.println("Got a spawn player response");
-           * System.out.println("Player name: " + new
-           * String(spawnPlayerPacket.playerName).trim());
-           * System.out.println("Player ID: " + spawnPlayerPacket.playerID);
-           * System.out.println("x: " + spawnPlayerPacket.x);
-           * System.out.println("y: " + spawnPlayerPacket.y);
-           * System.out.println("z: " + spawnPlayerPacket.z);
-           * System.out.println("yaw: " + spawnPlayerPacket.yaw);
-           * System.out.println("pitch: " + spawnPlayerPacket.pitch);
-           */
           if (spawnPlayerPacket.playerID == client.playerID) {
-            System.out.println(client.playerID);
             // spawn player
             this.client.x = new AtomicInteger(spawnPlayerPacket.x);
             this.client.y = new AtomicInteger(spawnPlayerPacket.y);
@@ -77,10 +60,6 @@ class ClientWriter extends Thread {
           this.client.out.writeShort(setBlockPacket.z);
           this.client.out.writeByte(setBlockPacket.block);
         } else if (p instanceof PositionAndOrientation) {
-          // TODO: this is actually all incorrect, we dont' just send 0x08, we send
-          // changes in X, Y, Z, yaw, pitch using the 0x09 packet, and we do it
-          // occasionally, perhaps implement an event listener or something to check when
-          // the client changes position
           PositionAndOrientation positionAndOrientationPacket = (PositionAndOrientation) p;
           byte playerID = positionAndOrientationPacket.playerID;
           if (playerID == this.client.playerID){
@@ -98,7 +77,7 @@ class ClientWriter extends Thread {
           Message messagePacket = (Message) p;
           // just relay it (but i also need a prompt)
           String prompt = "[" + new String(messagePacket.playerName).trim() + "]" + " : ";
-          byte[] promptAsByteArray = String.format("%-64s", prompt).getBytes(StandardCharsets.US_ASCII);
+          byte[] promptAsByteArray = Utils.stringToByteArray(prompt);
           this.client.out.writeByte(0x0d); // packet ID
           this.client.out.writeByte(messagePacket.playerID);
           this.client.out.write(promptAsByteArray);
@@ -113,10 +92,10 @@ class ClientWriter extends Thread {
           this.client.out.writeByte(0x0c); // despawn packet ID is 0x0c
           this.client.out.writeByte(despawnPacket.playerID);
 
-          // send a despawn message TODO: make the despawn message configurable in the server.properties file?
-          String despawnMessageFormat = "[%s] just disconnected";
-          String despawnMessage = String.format(despawnMessageFormat, new String(despawnPacket.playerName).trim());
-          byte[] despawnMessageAsByteArray = String.format("%-64s", despawnMessage).getBytes(StandardCharsets.US_ASCII);
+          // send a despawn message
+          String despawnMessage = String.format(this.client.serverProperties.get("despawn-message-format"), 
+            Utils.byteArrayToString(despawnPacket.playerName));
+          byte[] despawnMessageAsByteArray = Utils.stringToByteArray(despawnMessage);
           this.client.serverToClient.put(new Message(
             despawnPacket.playerID,
             despawnPacket.playerName,
@@ -130,7 +109,9 @@ class ClientWriter extends Thread {
         }
       }
     } catch (IOException | InterruptedException e) {
-      System.out.println("Exception in ClientWriter thread, client probably disconnected");
+      System.out.printf("Exception in ClientWriter thread. Marking %s (ID: %d) as disconnected.\n",
+        Utils.byteArrayToString(this.client.playerName),
+        this.client.playerID);
       try{
         this.client.clientToServer.put(new Despawn(this.client.playerID, this.client.playerName));
       }
@@ -138,7 +119,6 @@ class ClientWriter extends Thread {
         System.out.println("Thread got interrupted while writing to clientToServer array. Something really bad must've happened.");
         err.printStackTrace();
       }
-      e.printStackTrace();
     }
   }
 }
@@ -214,7 +194,9 @@ class ClientReader extends Thread {
         }
       }
     } catch (IOException | InterruptedException e) {
-      System.out.println("Exception in ClientReader thread, client probably disconnected");
+      System.out.printf("Exception in ClientReader thread, marking the %s (ID: %d) as disconnected\n",
+        Utils.byteArrayToString(this.client.playerName),
+        this.client.playerID);
 
       try{
         this.client.clientToServer.put(new Despawn(this.client.playerID, this.client.playerName));
@@ -223,13 +205,12 @@ class ClientReader extends Thread {
         System.out.println("Thread got interrupted while writing to clientToServer array. Something really bad must've happened.");
         err.printStackTrace();
       }
-
-      e.printStackTrace();
     }
   }
 }
 
 class Client extends Thread {
+  Map<String, String> serverProperties = Utils.getServerProperties("server.properties");
   BlockingQueue<Packet> serverToClient = new LinkedBlockingQueue<>();
   BlockingQueue<Packet> clientToServer;
   Socket clientSocket;
@@ -265,56 +246,35 @@ class Client extends Thread {
       byte verificationKey[] = new byte[64];
 
       packetID = in.readByte();
-      // let's just assume that packetID is 00
-      System.out.println("Packet ID:" + packetID);
-
       protocolVersion = in.readByte();
-      System.out.println("Protocol Version:" + protocolVersion);
-
-      // username
       in.readFully(username);
-      System.out.println("Username: " + new String(username).trim());
       this.playerName = username;
-      // verificationKey
       in.readFully(verificationKey);
-      System.out.println("Verification key: " + new String(verificationKey).trim());
 
       // read unused byte
       in.readByte();
 
-      // TODO: turn these configurations into a .toml file
-      // send out server identification
       out.writeByte(0x00); // packet ID
       out.writeByte(0x07); // protocol version
-      String serverName = "minecraft classic server"; // TODO: make these guys a server.properties parameter
-      String serverMessageOfTheDay = "just a boring server";
-      byte[] serverNameAsBytes = String.format("%-64s", serverName).getBytes(StandardCharsets.US_ASCII);
-      byte[] serverMessageOfTheDayAsBytes = String.format("%-64s", serverMessageOfTheDay)
-          .getBytes(StandardCharsets.US_ASCII);
+      byte[] serverNameAsBytes = Utils.stringToByteArray(this.serverProperties.get("server-name"));
+      byte[] serverMessageOfTheDayAsBytes = Utils.stringToByteArray(this.serverProperties.get("motd"));
       out.write(serverNameAsBytes); // server name
       out.write(serverMessageOfTheDayAsBytes); // server message of the day
       out.writeByte(0x00); // user type. 0x00 is normal user or 0x64 is op
-      out.flush();
 
       // level initalize
       out.writeByte(0x02);
 
-      // mark it as ready (even though world is still loading) such that the main
-      // tread can write stuff into the queue
       this.clientToServer.put(new WorldRequest(
-          this.playerID,
-          this.playerName));
+        this.playerID,
+        this.playerName));
       WorldResponse worldResponsePacket = (WorldResponse) this.serverToClient.take();
-      this.ready = true;
-      /*
-       * System.out.println("Client got the world response packet");
-       * System.out.println("World size: " + worldResponsePacket.blockArray.length);
-       * System.out.println("World x: " + worldResponsePacket.x);
-       * System.out.println("World y: " + worldResponsePacket.y);
-       * System.out.println("World z: " + worldResponsePacket.z);
-       */
+      System.out.printf("Sending world response to %s (ID: %d).\n", 
+        Utils.byteArrayToString(this.playerName), 
+        this.playerID);
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       GZIPOutputStream gzip = new GZIPOutputStream(baos);
+      // in the specification, we need to prepend the total number of blocks as a 4 byte integer
       gzip.write(ByteBuffer
           .allocate(4)
           .putInt(worldResponsePacket.blockArray.length)
@@ -327,12 +287,11 @@ class Client extends Thread {
         out.writeByte(0x03);
         byte[] chunk = new byte[1024];
         short length = (short) Math.min(1024, compressedByteArray.length - i);
-        out.writeShort(length); // sending one byte at a time
+        out.writeShort(length);
         System.arraycopy(compressedByteArray, i, chunk, 0, length);
         out.write(chunk); // sending the chunk
         int percentageCompleted = ((i + length) * 100) / compressedByteArray.length;
         out.writeByte(percentageCompleted); // percent complete;
-        System.out.println("Percentage completed: " + percentageCompleted);
       }
 
       // level finalize
@@ -341,15 +300,18 @@ class Client extends Thread {
       out.writeShort(worldResponsePacket.y);
       out.writeShort(worldResponsePacket.z);
 
+
       ClientWriter clientWriter = new ClientWriter(this);
       ClientReader clientReader = new ClientReader(this);
       clientWriter.start();
       clientReader.start();
+      System.out.printf("Started the clientReader and clientWriter threads for %s (ID: %d).\n", 
+        Utils.byteArrayToString(this.playerName),
+        this.playerID);
       clientWriter.join();
       clientReader.join();
     } catch (IOException | InterruptedException e) {
-      System.out.println("Something happened, client disconnected");
-      // TODO: need to send a DespawnPacket to the server
+      System.out.println("Main Client Thread got interrupted. Something bad might have happened.");
       e.printStackTrace();
     }
   }

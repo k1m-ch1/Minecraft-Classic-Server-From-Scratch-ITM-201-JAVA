@@ -81,6 +81,7 @@ For the server:
 - [] strings are only 64 bytes long! hunt down the errors!
 - [] misplaced spawn packets bug
 - [] place configs in the `server.properties`
+- [] error checking for string length (needs to be less than 64)
 ~~- [] accept thread might have redundant parameters~~
 
 There are other protocols and features we can implement later if we do have time.
@@ -249,3 +250,9 @@ index = x + width*z + width*depth*y
 ```
 
 So we just do that until we reach the end of the byte array. Each byte of the array represents a block type, according to this table [linked here](https://minecraft.fandom.com/wiki/Java_Edition_data_values/Classic).
+
+
+[1, 2, 4, 5, 7, 3]
+
+
+
