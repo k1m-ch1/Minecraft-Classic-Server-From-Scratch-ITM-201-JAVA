@@ -1,5 +1,12 @@
 # About
 
+This is a very simple implementation of the minecraft classic server in Java. [Github link](.
+
+
+# Usage
+
+To run the server, just clone the repository.
+
 # Setting up
 
 So for our client, we'll use [ClassiCube](https://www.classicube.net/).
