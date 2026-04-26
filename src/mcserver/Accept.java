@@ -15,7 +15,6 @@ class Accept extends Thread{
   ServerSocket serverSocket; 
   CopyOnWriteArrayList<Client> clientList;
   BlockingQueue<Packet> clientToServer;
-  byte playerIDCounter = 0;
 
   Accept(
     ServerSocket serverSocket,
@@ -30,20 +29,26 @@ class Accept extends Thread{
 
   public void run(){
     try{
-      // TODO: create a .toml or .yaml or something file to store all the configurations
       while (true){
         Socket clientSocket = serverSocket.accept();
+        byte assignedPlayerID = Utils.assignPlayerID(this.clientList);
+        if (assignedPlayerID == (byte) 255){
+          // we must reserve ID 255 for the server. Disconnect the client.
+          DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
+          out.writeByte(0x0e);
+          out.write(Utils.stringToByteArray("The server is probably full. Try again later."));
+          continue;
+        }
         Client clientThread = new Client(
           clientSocket,
           this.clientToServer,
-          this.playerIDCounter
+          assignedPlayerID
         );
-        this.playerIDCounter += 1;
         clientList.add(clientThread);
         clientThread.start();
       }
     } catch (IOException e) {
-      System.out.println("Idk, something happened");
+      System.out.println("An IOException in the accept thread? Something REALLY BAD must have happened...");
       e.printStackTrace();
     }
   }

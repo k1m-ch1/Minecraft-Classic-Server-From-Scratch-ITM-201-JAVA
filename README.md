@@ -77,11 +77,11 @@ For the server:
 
 ## bugs
 
-- [] hunt down the occasional `x.get()` doesn't exists since `x` is null for some reason when it should be an `AtomicInteger`
-- [] strings are only 64 bytes long! hunt down the errors!
-- [] misplaced spawn packets bug
-- [] place configs in the `server.properties`
-- [] error checking for string length (needs to be less than 64)
+~~- [] hunt down the occasional `x.get()` doesn't exists since `x` is null for some reason when it should be an `AtomicInteger`~~
+- [x] strings are only 64 bytes long! hunt down the errors!
+~~- [] misplaced spawn packets bug~~ (doesn't happen anymore for some reason)
+- [x] place configs in the `server.properties`
+- [x] error checking for string length (needs to be less than 64)
 ~~- [] accept thread might have redundant parameters~~
 
 There are other protocols and features we can implement later if we do have time.

@@ -97,8 +97,8 @@ class ClientWriter extends Thread {
             Utils.byteArrayToString(despawnPacket.playerName));
           byte[] despawnMessageAsByteArray = Utils.stringToByteArray(despawnMessage);
           this.client.serverToClient.put(new Message(
-            despawnPacket.playerID,
-            despawnPacket.playerName,
+            (byte) 0xff,
+            Utils.stringToByteArray(this.client.serverProperties.get("server-name")),
             despawnMessageAsByteArray
           ));
         }
@@ -194,7 +194,7 @@ class ClientReader extends Thread {
         }
       }
     } catch (IOException | InterruptedException e) {
-      System.out.printf("Exception in ClientReader thread, marking the %s (ID: %d) as disconnected\n",
+      System.out.printf("Exception in ClientReader thread. Marking %s (ID: %d) as disconnected.\n",
         Utils.byteArrayToString(this.client.playerName),
         this.client.playerID);
 
