@@ -13,7 +13,6 @@ import net.querz.nbt.io.*;
 
 public class Main {
   public static void main(String[] args) throws IOException {
-    //TODO: make the world file into a config file
     Map<String, String> serverProperties = Utils.getServerProperties("server.properties");
     final String worldPath = serverProperties.get("world-path");
     NamedTag namedTag = NBTUtil.read(worldPath);
@@ -87,7 +86,6 @@ public class Main {
               if (!clientToBroadcastSpawn.ready) {
                 continue;
               }
-              // TODO: make this in server.properties
               byte[] serverNameAsByteArray = Utils.stringToByteArray(serverProperties.get("server-name"));
               String welcomeMessage = String.format(serverProperties.get("spawn-message-format"), Utils.byteArrayToString(client.playerName));
               byte[] welcomeMessageAsByteArray = Utils.stringToByteArray(welcomeMessage);

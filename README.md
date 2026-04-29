@@ -2,6 +2,10 @@
 
 This is a very simple implementation of the minecraft classic server in Java. [Github link](https://github.com/k1m-ch1/Minecraft-Classic-Server-From-Scratch-ITM-201-JAVA).
 
+Video Explanation:
+
+[![video explanation of minecraft classic server protocol](https://i3.ytimg.com/vi/W21Rrz5vlyw/maxresdefault.jpg)](https://www.youtube.com/watch?v=W21Rrz5vlyw)
+
 # Usage
 
 To run the server, just clone the repository.
